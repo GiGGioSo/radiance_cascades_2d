@@ -62,3 +62,6 @@ int main(void) {
         glfwPollEvents();
     }
 }
+
+void generate_cascade(int cascade_index) {
+}

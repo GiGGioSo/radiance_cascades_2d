@@ -4,11 +4,22 @@
 #include <glad/glad.h>
 #include <glfw3.h>
 
+#define WIDTH 800
+#define HEIGHT 600
+
+#define VOID 0
+#define LIGHT 1
+#define OBSTACLE 2
+
+typedef unsigned char ubyte;
+
+ubyte map[HEIGHT * WIDTH];
+
 GLFWwindow *glfw_win;
-int width = 800;
-int height = 600;
 float delta_time;
 unsigned long fps_counter;
+
+void init_map_pixels(ubyte *m, int w, int h);
 
 int main(void) {
     glfwInit();
@@ -20,7 +31,7 @@ int main(void) {
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    glfw_win = glfwCreateWindow(width, height, "Radiance Cascades", NULL, NULL);
+    glfw_win = glfwCreateWindow(WIDTH, HEIGHT, "Radiance Cascades", NULL, NULL);
 
     if (glfw_win == NULL) {
         fprintf(stderr, "[ERROR] Failed to create GLFW window\n");
@@ -35,6 +46,8 @@ int main(void) {
         fprintf(stderr, "[ERROR] Failed to initialize GLAD\n");
         return 1;
     }
+
+    init_map_pixels(map, WIDTH, HEIGHT);
 
     float this_frame = 0.f;
     float last_frame = 0.f;
@@ -60,6 +73,64 @@ int main(void) {
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
         glfwPollEvents();
+    }
+}
+
+GLuint generate_map_texture(ubyte *m, int w, int h) {
+    GLuint tex;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
+
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(
+            GL_TEXTURE_RECTANGLE,
+            0,
+            GL_RGBA,
+            w,
+            h,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE, 
+            m);
+    return tex;
+}
+
+void init_map_pixels(ubyte *m, int w, int h) {
+    // fill the void
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            int index = y * w + x;
+            m[index] = VOID;
+        }
+    }
+
+    // light source: middle left
+    int light_w = 20;
+    int light_h = h / 3;
+    int light_x = (w / 4) - (light_w / 2);
+    int light_y = (h / 2) - (light_h / 2);
+    for(int y = light_y; y < light_y + light_h; ++y) {
+        for(int x = light_x; x < light_x + light_w; ++x) {
+            int index = y * w + x;
+            m[index] = LIGHT;
+        }
+    }
+
+    // obstacle: center down
+    int obstacle_w = 30;
+    int obstacle_h = h / 3;
+    int obstacle_x = (w / 2) - (obstacle_w / 2);
+    int obstacle_y = (h / 2);
+    for(int y = obstacle_y; y < obstacle_y + obstacle_h; ++y) {
+        for(int x = obstacle_x; x < obstacle_x + obstacle_w; ++x) {
+            int index = y * w + x;
+            m[index] = OBSTACLE;
+        }
     }
 }
 

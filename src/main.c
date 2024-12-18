@@ -4,22 +4,29 @@
 #include <glad/glad.h>
 #include <glfw3.h>
 
+typedef unsigned char ubyte;
+
+typedef struct pixel {
+    ubyte r, g, b, a;
+} pixel;
+
+void init_map_pixels(pixel *m, int w, int h);
+GLuint generate_map_texture(pixel *m, int w, int h);
+
 #define WIDTH 800
 #define HEIGHT 600
 
-#define VOID 0
-#define LIGHT 1
-#define OBSTACLE 2
+#define VOID (pixel){ .r = 0, .g = 0, .b = 0, .a = 0 }
+#define RED_LIGHT (pixel){ .r = 255, .g = 0, .b = 0, .a = 255 }
+#define GREEN_LIGHT (pixel){ .r = 0, .g = 255, .b = 0, .a = 255 }
+#define BLUE_LIGHT (pixel){ .r = 0, .g = 0, .b = 255, .a = 255 }
+#define OBSTACLE (pixel){ .r = 255, .g = 255, .b = 255, .a = 255 }
 
-typedef unsigned char ubyte;
-
-ubyte map[HEIGHT * WIDTH];
+pixel map[HEIGHT * WIDTH];
 
 GLFWwindow *glfw_win;
 float delta_time;
 unsigned long fps_counter;
-
-void init_map_pixels(ubyte *m, int w, int h);
 
 int main(void) {
     glfwInit();
@@ -48,6 +55,7 @@ int main(void) {
     }
 
     init_map_pixels(map, WIDTH, HEIGHT);
+    GLuint map_texture = generate_map_texture(map, WIDTH, HEIGHT);
 
     float this_frame = 0.f;
     float last_frame = 0.f;
@@ -76,37 +84,34 @@ int main(void) {
     }
 }
 
-GLuint generate_map_texture(ubyte *m, int w, int h) {
+GLuint generate_map_texture(pixel *m, int w, int h) {
     GLuint tex;
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
 
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(
-            GL_TEXTURE_RECTANGLE,
+            GL_TEXTURE_2D,
             0,
             GL_RGBA,
             w,
             h,
             0,
-            GL_RED,
+            GL_RGBA,
             GL_UNSIGNED_BYTE, 
             m);
     return tex;
 }
 
-void init_map_pixels(ubyte *m, int w, int h) {
+void init_map_pixels(pixel *m, int w, int h) {
     // fill the void
-    for(int y = 0; y < h; ++y) {
-        for(int x = 0; x < w; ++x) {
-            int index = y * w + x;
-            m[index] = VOID;
-        }
+    for(int index = 0; index < w * h; ++index) {
+        m[index] = VOID;
     }
 
     // light source: middle left
@@ -117,7 +122,7 @@ void init_map_pixels(ubyte *m, int w, int h) {
     for(int y = light_y; y < light_y + light_h; ++y) {
         for(int x = light_x; x < light_x + light_w; ++x) {
             int index = y * w + x;
-            m[index] = LIGHT;
+            m[index] = RED_LIGHT;
         }
     }
 

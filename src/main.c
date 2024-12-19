@@ -25,12 +25,16 @@ void shader_set_vec3f(shader_program s, const char* name, float x, float y, floa
 #define WIDTH 800
 #define HEIGHT 600
 
-#define VOID (pixel){ .r = 255, .g = 255, .b = 255, .a = 255 }
-#define OBSTACLE (pixel){ .r = 0, .g = 0, .b = 0, .a = 0 }
+#define VOID (pixel){ .r = 0, .g = 0, .b = 0, .a = 0 }
+#define OBSTACLE (pixel){ .r = 0, .g = 0, .b = 0, .a = 255 }
 #define RED_LIGHT (pixel){ .r = 255, .g = 0, .b = 0, .a = 255 }
 #define GREEN_LIGHT (pixel){ .r = 0, .g = 255, .b = 0, .a = 255 }
 #define BLUE_LIGHT (pixel){ .r = 0, .g = 0, .b = 255, .a = 255 }
 
+// # Cascades parameters
+#define CASCADE0_PROBE_NUMBER 200
+#define DIMENSION_SCALING 2 // for each dimension
+#define ANGULAR_SCALING 2
 
 int main(void) {
     // variables

@@ -10,4 +10,4 @@ rm -rf bin
 mkdir bin
 
 echo "Compiling..."
-gcc $LIBS $INCLUDES -o $EXE $SRCS
+gcc -ggdb $LIBS $INCLUDES -o $EXE $SRCS

@@ -55,10 +55,10 @@ generate_cascade(map m, int32 cascade_index);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE0_PROBE_NUMBER_X 128
-#define CASCADE0_PROBE_NUMBER_Y 96
+#define CASCADE0_PROBE_NUMBER_X 64
+#define CASCADE0_PROBE_NUMBER_Y 48
 #define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 8 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 2 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -105,6 +105,12 @@ int main(void) {
     }
 
     init_map_pixels(m);
+    // ### test ###
+    generate_cascade(m, 0);
+    generate_cascade(m, 1);
+    generate_cascade(m, 2);
+    generate_cascade(m, 3);
+    generate_cascade(m, 4);
     texture map_texture = generate_map_texture(m);
     setup_map_renderer(&vao, &vbo, &ebo);
     map_shader =
@@ -112,8 +118,6 @@ int main(void) {
     glUseProgram(map_shader);
     shader_set_int32(map_shader, "map_texture", 0);
 
-    // ### test ###
-    generate_cascade(m, 0);
 
     float this_frame = 0.f;
     float last_frame = 0.f;
@@ -150,24 +154,30 @@ int main(void) {
 
 // TODO(gio): uses DDA algorithm for now. Optimize it
 vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
-    vec2f start = {
-        .x = CLAMP(origin.x + direction.x * t0, 0.f, (float) m.w),
-        .y = CLAMP(origin.y + direction.y * t0, 0.f, (float) m.h)
+    vec2i start = {
+        .x = CLAMP((int32) ((origin.x + direction.x * t0) + 0.5f),
+                0, m.w),
+        .y = CLAMP((int32) ((origin.y + direction.y * t0) + 0.5f),
+                0, m.h)
     };
-    vec2f end = {
-        .x = CLAMP(origin.x + direction.x * t1, 0.f, (float) m.w),
-        .y = CLAMP(origin.y + direction.y * t1, 0.f, (float) m.h)
+    vec2i end = {
+        .x = CLAMP((int32) ((origin.x + direction.x * t1) + 0.5f),
+                0.f, (float) m.w),
+        .y = CLAMP((int32) ((origin.y + direction.y * t1) + 0.5f),
+                0, m.h)
     };
 
     // TODO(gio): manage vertical lines separately (slope = inf)
-    float slope = (end.y - start.y) / (end.x - start.x);
+    float slope = direction.y / direction.x;
 
-    for(int x = (int) start.x; x < end.x; ++x) {
-        int y = start.y + slope * (x - start.x);
+    for(int32 x = MIN(start.x, end.x); x <= MAX(start.x, end.x); ++x) {
+        int32 y = CLAMP((int32) (start.y + slope * ((float) x - start.x)),
+                        0, m.h);
+        int32 index = (int32) (y * m.w + x);
 
-        int index = y * m.w + x;
-
-        if (!vec4f_equals(m.pixels[index], VOID)) {
+        if (!vec4f_equals(m.pixels[index], VOID) &&
+            !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+            // printf("ciao ");
             return m.pixels[index];
         } else {
             m.pixels[index] = RAY_CASTED;
@@ -253,14 +263,14 @@ void init_map_pixels(map m) {
         .x = 1.f,
         .y = -0.3f
     };
-    vec4f intersection_result =
-        ray_intersect(m, ray_origin, ray_direction, 2.f, m.w / 4);
+ //    vec4f intersection_result =
+ //        ray_intersect(m, ray_origin, ray_direction, 2.f, m.w / 4);
 
-    printf("Intersection result: %f, %f, %f, %f\n",
-            intersection_result.x,
-            intersection_result.y,
-            intersection_result.z,
-            intersection_result.w);
+ //    printf("Intersection result: %f, %f, %f, %f\n",
+ //            intersection_result.x,
+ //            intersection_result.y,
+ //            intersection_result.z,
+ //            intersection_result.w);
 }
 
 void draw_circle_on_map_pixels(map m, circle c) {
@@ -377,10 +387,11 @@ void generate_cascade(map m, int32 cascade_index) {
     // probe count for each dimension
     float cascade_dimension_scaling =
         powf(DIMENSION_SCALING, cascade_index);
-    vec2i probe_number = {
+    vec2f probe_number = {
         .x = CASCADE0_PROBE_NUMBER_X * cascade_dimension_scaling,
         .y = CASCADE0_PROBE_NUMBER_Y * cascade_dimension_scaling
     };
+    printf("probe_number(%f, %f)\n", probe_number.x, probe_number.y);
 
     // angular frequency
     float cascade_angular_scaling =
@@ -399,17 +410,17 @@ void generate_cascade(map m, int32 cascade_index) {
     float interval_end = interval_start + interval_length;
 
     // ### Do the rest
-    vec2i probe_size = {
-        .x = m.w / probe_number.x,
-        .y = m.h / probe_number.y
+    vec2f probe_size = {
+        .x = (float) m.w / probe_number.x,
+        .y = (float) m.h / probe_number.y
     };
 
     for(int32 x = 0; x < probe_number.x; ++x) {
         for(int32 y = 0; y < probe_number.y; ++y) {
             // probe center position to raycast from
             vec2f probe_center = {
-                .x = (float) probe_size.x * (x + 0.5f),
-                .y = (float) probe_size.y * (y + 0.5f),
+                .x = probe_size.x * (x + 0.5f),
+                .y = probe_size.y * (y + 0.5f),
             };
 
             for(int32 direction_index = 0;
@@ -430,11 +441,11 @@ void generate_cascade(map m, int32 cascade_index) {
                             interval_start,
                             interval_end);
 
-                printf("Intersection result: %f, %f, %f, %f\n",
-                        result.x,
-                        result.y,
-                        result.z,
-                        result.w);
+                // printf("Intersection result: %f, %f, %f, %f\n",
+                //         result.x,
+                //         result.y,
+                //         result.z,
+                //         result.w);
             }
         }
     }

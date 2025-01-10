@@ -36,6 +36,10 @@
 #define UINT64_MAX 0xffffffffffffffff
 #endif
 
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
+
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -122,6 +126,9 @@ typedef struct mat4f {
 vec4f
 make_vec4f(float x, float y, float z, float w);
 
+vec2f
+vec2f_from_angle(float rad);
+
 float
 vec2f_length_squared(vec2f v);
 
@@ -144,6 +151,15 @@ vec4f make_vec4f(float x, float y, float z, float w) {
     result.y = y;
     result.z = z;
     result.w = w;
+
+    return result;
+}
+
+vec2f vec2f_from_angle(float rad) {
+    vec2f result;
+
+    result.x = cosf(rad);
+    result.y = sinf(rad);
 
     return result;
 }

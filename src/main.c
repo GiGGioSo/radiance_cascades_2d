@@ -41,6 +41,9 @@ setup_map_renderer(GLuint *vao, GLuint *vbo, GLuint *ebo);
 void
 render_map(GLuint vao, texture map_texture, shader_program map_shader, map m);
 
+void
+generate_cascade(map m, int32 cascade_index);
+
 #define WIDTH 800
 #define HEIGHT 600
 
@@ -52,9 +55,13 @@ render_map(GLuint vao, texture map_texture, shader_program map_shader, map m);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE0_PROBE_NUMBER 200
+#define CASCADE0_PROBE_NUMBER_X 128
+#define CASCADE0_PROBE_NUMBER_Y 96
+#define CASCADE0_ANGULAR_NUMBER 4
+#define CASCADE0_INTERVAL_LENGTH 8 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
+#define INTERVAL_SCALING 2
 
 int main(void) {
     // variables
@@ -67,8 +74,8 @@ int main(void) {
     m.pixels = malloc(sizeof(vec4f) * m.w * m.h);
 
     GLFWwindow *glfw_win;
-    float delta_time;
-    uint64 fps_counter;
+    float delta_time = 0;
+    uint64 fps_counter = 0;
     GLuint vao, vbo, ebo;
     shader_program map_shader;
 
@@ -104,6 +111,9 @@ int main(void) {
         shader_create_program("res/shaders/map.vs", "res/shaders/map.fs");
     glUseProgram(map_shader);
     shader_set_int32(map_shader, "map_texture", 0);
+
+    // ### test ###
+    generate_cascade(m, 0);
 
     float this_frame = 0.f;
     float last_frame = 0.f;
@@ -236,7 +246,7 @@ void init_map_pixels(map m) {
     draw_rectangle_on_map_pixels(m, r);
 
     vec2f ray_origin = {
-        .x = (0 / 4) + 15.f,
+        .x = (0 / 2) + 15.f,
         .y = m.h / 2
     };
     vec2f ray_direction = {
@@ -362,6 +372,78 @@ void render_map(
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void generate_cascade(int32 cascade_index) {
+void generate_cascade(map m, int32 cascade_index) {
+    // ### Calculate parameters for this cascade index
+    // probe count for each dimension
+    float cascade_dimension_scaling =
+        powf(DIMENSION_SCALING, cascade_index);
+    vec2i probe_number = {
+        .x = CASCADE0_PROBE_NUMBER_X * cascade_dimension_scaling,
+        .y = CASCADE0_PROBE_NUMBER_Y * cascade_dimension_scaling
+    };
+
+    // angular frequency
+    float cascade_angular_scaling =
+        powf(ANGULAR_SCALING, cascade_index);
+    float angular_number = CASCADE0_ANGULAR_NUMBER * cascade_angular_scaling;
+
+    // ray cast interval dimension
+    float base_interval = CASCADE0_INTERVAL_LENGTH;
+    float cascade_interval_scaling =
+        powf(INTERVAL_SCALING, cascade_index);
+    float interval_length =
+        base_interval * cascade_interval_scaling;
+    float interval_start =
+        (powf(base_interval, cascade_index + 1) - base_interval) /
+        (base_interval - 1);
+    float interval_end = interval_start + interval_length;
+
+    // ### Do the rest
+    vec2i probe_size = {
+        .x = m.w / probe_number.x,
+        .y = m.h / probe_number.y
+    };
+
+    for(int32 x = 0; x < probe_number.x; ++x) {
+        for(int32 y = 0; y < probe_number.y; ++y) {
+            // probe center position to raycast from
+            vec2f probe_center = {
+                .x = (float) probe_size.x * (x + 0.5f),
+                .y = (float) probe_size.y * (y + 0.5f),
+            };
+
+            for(int32 direction_index = 0;
+                direction_index < angular_number;
+                ++direction_index) {
+                float direction_angle =
+                    2 * PI *
+                    (((float) direction_index + 0.5f) /
+                     (float) angular_number);
+
+                vec2f ray_direction = vec2f_from_angle(direction_angle);
+
+                vec4f result =
+                    ray_intersect(
+                            m,
+                            probe_center,
+                            ray_direction,
+                            interval_start,
+                            interval_end);
+
+                printf("Intersection result: %f, %f, %f, %f\n",
+                        result.x,
+                        result.y,
+                        result.z,
+                        result.w);
+            }
+        }
+    }
+
+    /*
+     * per ogni probe:
+     *  - casta in tutte le direzioni
+     *  - popola la sezione di texture con il risultato
+     *
+     */
 }
 

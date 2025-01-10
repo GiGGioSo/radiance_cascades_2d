@@ -8,6 +8,7 @@
 ///
 
 #include <stdint.h>
+#include <math.h>
 
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -124,6 +125,9 @@ make_vec4f(float x, float y, float z, float w);
 float
 vec2f_length_squared(vec2f v);
 
+vec2f
+vec2f_normalize(vec2f v);
+
 vec4f
 mat4f_x_vec4f(mat4f m, vec4f v);
 
@@ -144,8 +148,22 @@ vec4f make_vec4f(float x, float y, float z, float w) {
     return result;
 }
 
+int vec4f_equals(vec4f v1, vec4f v2) {
+    return (v1.x == v2.x && v1.y == v2.y && v1.z == v2.z && v1.w == v2.w);
+}
+
 float vec2f_length_squared(vec2f v) {
     return v.x * v.x + v.y * v.y;
+}
+
+vec2f vec2f_normalize(vec2f v) {
+    vec2f result;
+
+    float magnitude = sqrtf(v.x * v.x + v.y * v.y);
+    result.x = v.x / magnitude;
+    result.y = v.y / magnitude;
+
+    return result;
 }
 
 vec4f mat4f_x_vec4f(mat4f m, vec4f v) {

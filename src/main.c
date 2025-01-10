@@ -44,8 +44,8 @@ render_map(GLuint vao, texture map_texture, shader_program map_shader, map m);
 void
 generate_cascade(map m, int32 cascade_index);
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 2000
+#define HEIGHT 2000
 
 #define VOID (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 0.f }
 #define OBSTACLE (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 1.f }
@@ -55,10 +55,12 @@ generate_cascade(map m, int32 cascade_index);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE0_PROBE_NUMBER_X 64
-#define CASCADE0_PROBE_NUMBER_Y 48
+#define CASCADE_NUMBER 7
+
+#define CASCADE0_PROBE_NUMBER_X 96
+#define CASCADE0_PROBE_NUMBER_Y 96
 #define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 2 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -106,11 +108,13 @@ int main(void) {
 
     init_map_pixels(m);
     // ### test ###
-    generate_cascade(m, 0);
-    generate_cascade(m, 1);
-    generate_cascade(m, 2);
-    generate_cascade(m, 3);
-    generate_cascade(m, 4);
+    for(int32 cascade_index = 0;
+        cascade_index < CASCADE_NUMBER;
+        ++cascade_index) {
+
+        generate_cascade(m, cascade_index);
+    }
+    // generate_cascade(m, 2);
     texture map_texture = generate_map_texture(m);
     setup_map_renderer(&vao, &vbo, &ebo);
     map_shader =
@@ -152,7 +156,6 @@ int main(void) {
     }
 }
 
-// TODO(gio): uses DDA algorithm for now. Optimize it
 vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
     vec2i start = {
         .x = CLAMP((int32) ((origin.x + direction.x * t0) + 0.5f),
@@ -167,20 +170,40 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
                 0, m.h)
     };
 
-    // TODO(gio): manage vertical lines separately (slope = inf)
-    float slope = direction.y / direction.x;
+    if (start.x != end.x) {
+        float slope = direction.y / direction.x;
 
-    for(int32 x = MIN(start.x, end.x); x <= MAX(start.x, end.x); ++x) {
-        int32 y = CLAMP((int32) (start.y + slope * ((float) x - start.x)),
-                        0, m.h);
-        int32 index = (int32) (y * m.w + x);
+        for(int32 x = MIN(start.x, end.x); x < MAX(start.x, end.x); ++x) {
+            int32 y1 = (int32) (start.y + slope * ((float) x - start.x));
+            int32 y2 = (int32) (start.y + slope * ((float) x - start.x + 1));
 
-        if (!vec4f_equals(m.pixels[index], VOID) &&
-            !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-            // printf("ciao ");
-            return m.pixels[index];
-        } else {
-            m.pixels[index] = RAY_CASTED;
+            // if (x == MAX(start.x, end.x)) {
+            //     y2 = y1 + 1;
+            // }
+            for(int32 y = MIN(y1, y2); y <= MAX(y1, y2); ++y) {
+                if (!(0 <= y && y < m.h)) continue; // out of map
+
+                int32 index = (int32) (y * m.w + x);
+                if (!vec4f_equals(m.pixels[index], VOID) &&
+                    !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+                    // printf("ciao ");
+                    return m.pixels[index];
+                } else {
+                    m.pixels[index] = RAY_CASTED;
+                }
+            }
+        }
+    } else {
+        for(int32 y = MIN(start.y, end.y); y <= MAX(start.y, end.y); ++y) {
+            int32 index = (int32) (y * m.w + start.x);
+
+            if (!vec4f_equals(m.pixels[index], VOID) &&
+                !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+                // printf("ciao ");
+                return m.pixels[index];
+            } else {
+                m.pixels[index] = RAY_CASTED;
+            }
         }
     }
 
@@ -212,57 +235,77 @@ texture generate_map_texture(map m) {
 }
 
 void init_map_pixels(map m) {
-    // fill the void
+    // // fill the void
     for(int32 index = 0; index < m.w * m.h; ++index) {
         m.pixels[index] = VOID;
     }
 
-    // light source: middle left
-    int32 light_w = 20;
-    int32 light_h = m.h / 3;
-    int32 light_x = (m.w / 4) - (light_w / 2);
-    int32 light_y = (m.h / 2) - (light_h / 2);
-    for(int32 y = light_y; y < light_y + light_h; ++y) {
-        for(int32 x = light_x; x < light_x + light_w; ++x) {
-            int32 index = y * m.w + x;
-            m.pixels[index] = RED_LIGHT;
+    // // light source: middle left
+    // int32 light_w = 20;
+    // int32 light_h = m.h / 3;
+    // int32 light_x = (m.w / 4) - (light_w / 2);
+    // int32 light_y = (m.h / 2) - (light_h / 2);
+    // for(int32 y = light_y; y < light_y + light_h; ++y) {
+    //     for(int32 x = light_x; x < light_x + light_w; ++x) {
+    //         int32 index = y * m.w + x;
+    //         m.pixels[index] = RED_LIGHT;
+    //     }
+    // }
+
+    // // obstacle: center down
+    // int32 obstacle_w = 30;
+    // int32 obstacle_h = m.h / 3;
+    // int32 obstacle_x = (m.w / 2) - (obstacle_w / 2);
+    // int32 obstacle_y = (m.h / 2);
+    // for(int32 y = obstacle_y; y < obstacle_y + obstacle_h; ++y) {
+    //     for(int32 x = obstacle_x; x < obstacle_x + obstacle_w; ++x) {
+    //         int32 index = y * m.w + x;
+    //         m.pixels[index] = OBSTACLE;
+    //     }
+    // }
+
+    int32 sphere_number = 10;
+    float radius_min = 5.f;
+    float radius_max = 30.f;
+
+    for(int32 sphere_x = 0;
+        sphere_x < sphere_number;
+        ++sphere_x) {
+        for(int32 sphere_y = 0;
+            sphere_y < sphere_number;
+            ++sphere_y) {
+
+             circle c = {
+                 .center = (vec2f) {
+                     .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
+                     .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
+                 },
+                 .radius =
+                     (float) radius_min +
+                     (float) (radius_max - radius_min) *
+                     ((float) (sphere_x + sphere_y) /
+                        (2.f * sphere_number - 2.f)),
+                 .color = RED_LIGHT
+             };
+             // draw_circle_on_map_pixels(m, c);
         }
     }
 
-    // obstacle: center down
-    int32 obstacle_w = 30;
-    int32 obstacle_h = m.h / 3;
-    int32 obstacle_x = (m.w / 2) - (obstacle_w / 2);
-    int32 obstacle_y = (m.h / 2);
-    for(int32 y = obstacle_y; y < obstacle_y + obstacle_h; ++y) {
-        for(int32 x = obstacle_x; x < obstacle_x + obstacle_w; ++x) {
-            int32 index = y * m.w + x;
-            m.pixels[index] = OBSTACLE;
-        }
-    }
+    // rectangle r = {
+    //     .pos = (vec2f) { 440.f, 150.f },
+    //     .dim = (vec2f) { 200.f, 150.f },
+    //     .color = (vec4f) { 0.f, 1.f, 0.f, 1.f }
+    // };
+    // draw_rectangle_on_map_pixels(m, r);
 
-    circle c = {
-        .center = (vec2f) { 400.f, 300.f },
-        .radius = 100.f,
-        .color = (vec4f) { 0.f, 0.f, 1.f, 1.f }
-    };
-    draw_circle_on_map_pixels(m, c);
-
-    rectangle r = {
-        .pos = (vec2f) { 440.f, 150.f },
-        .dim = (vec2f) { 200.f, 150.f },
-        .color = (vec4f) { 0.f, 1.f, 0.f, 1.f }
-    };
-    draw_rectangle_on_map_pixels(m, r);
-
-    vec2f ray_origin = {
-        .x = (0 / 2) + 15.f,
-        .y = m.h / 2
-    };
-    vec2f ray_direction = {
-        .x = 1.f,
-        .y = -0.3f
-    };
+    // vec2f ray_origin = {
+    //     .x = (0 / 2) + 15.f,
+    //     .y = m.h / 2
+    // };
+    // vec2f ray_direction = {
+    //     .x = 1.f,
+    //     .y = -0.3f
+    // };
  //    vec4f intersection_result =
  //        ray_intersect(m, ray_origin, ray_direction, 2.f, m.w / 4);
 
@@ -274,20 +317,20 @@ void init_map_pixels(map m) {
 }
 
 void draw_circle_on_map_pixels(map m, circle c) {
-    vec2f draw_start = {
-        .x = CLAMP(c.center.x - c.radius, 0.f, (float) m.w),
-        .y = CLAMP(c.center.y - c.radius, 0.f, (float) m.h)
+    vec2i draw_start = {
+        .x = CLAMP((int32) (c.center.x - c.radius), 0.f, m.w-1),
+        .y = CLAMP((int32) (c.center.y - c.radius), 0.f, m.h-1)
     };
 
-    vec2f draw_end = {
-        .x = CLAMP(c.center.x + c.radius, 0.f, (float) m.w),
-        .y = CLAMP(c.center.y + c.radius, 0.f, (float) m.h)
+    vec2i draw_end = {
+        .x = CLAMP((int32) (c.center.x + c.radius), 0.f, m.w-1),
+        .y = CLAMP((int32) (c.center.y + c.radius), 0.f, m.h-1)
     };
 
     int32 radius_squared = c.radius * c.radius;
 
-    for(float x = draw_start.x; x < draw_end.x; ++x) {
-        for(float y = draw_start.y; y < draw_end.y; ++y) {
+    for(int32 x = draw_start.x; x <= draw_end.x; ++x) {
+        for(int32 y = draw_start.y; y <= draw_end.y; ++y) {
             vec2f relative_pos = {
                 .x = x - c.center.x,
                 .y = y - c.center.y,
@@ -304,18 +347,18 @@ void draw_circle_on_map_pixels(map m, circle c) {
 }
 
 void draw_rectangle_on_map_pixels(map m, rectangle r) {
-    vec2f draw_start = {
-        .x = CLAMP(r.pos.x, 0.f, (float) m.w),
-        .y = CLAMP(r.pos.y, 0.f, (float) m.h)
+    vec2i draw_start = {
+        .x = CLAMP((int32) r.pos.x, 0.f, m.w-1),
+        .y = CLAMP((int32) r.pos.y, 0.f, m.h-1)
     };
 
-    vec2f draw_end = {
-        .x = CLAMP(r.pos.x + r.dim.x, 0.f, (float) m.w),
-        .y = CLAMP(r.pos.y + r.dim.y, 0.f, (float) m.h)
+    vec2i draw_end = {
+        .x = CLAMP((int32) (r.pos.x + r.dim.x), 0.f, m.w-1),
+        .y = CLAMP((int32) (r.pos.y + r.dim.y), 0.f, m.h-1)
     };
 
-    for(float x = draw_start.x; x < draw_end.x; ++x) {
-        for(float y = draw_start.y; y < draw_end.y; ++y) {
+    for(float x = draw_start.x; x <= draw_end.x; ++x) {
+        for(float y = draw_start.y; y <= draw_end.y; ++y) {
             int32 index = (int32) (y * m.w + x);
             m.pixels[index].r = r.color.r;
             m.pixels[index].g = r.color.g;
@@ -391,7 +434,6 @@ void generate_cascade(map m, int32 cascade_index) {
         .x = CASCADE0_PROBE_NUMBER_X * cascade_dimension_scaling,
         .y = CASCADE0_PROBE_NUMBER_Y * cascade_dimension_scaling
     };
-    printf("probe_number(%f, %f)\n", probe_number.x, probe_number.y);
 
     // angular frequency
     float cascade_angular_scaling =

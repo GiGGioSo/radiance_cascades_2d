@@ -20,6 +20,10 @@
 #define CLAMP(x, min, max) MIN(MAX((x), (min)), (max))
 #endif
 
+#ifndef POW2
+#define POW2(x) ((x) * (x))
+#endif
+
 #ifndef UINT8_MAX
 #define UINT8_MAX 0xff
 #endif
@@ -124,7 +128,13 @@ typedef struct mat4f {
 } mat4f;
 
 vec4f
-make_vec4f(float x, float y, float z, float w);
+vec4f_create(float x, float y, float z, float w);
+
+vec4f
+vec4f_divide(vec4f v, float x);
+
+vec4f
+vec4f_sum_vec4f(vec4f v1, vec4f v2);
 
 vec2f
 vec2f_from_angle(float rad);
@@ -144,13 +154,35 @@ mat4f_x_mat4f(mat4f m1, mat4f m2);
 
 #ifdef RADIANCE_CASCADES_MATHY_IMPLEMENTATION
 
-vec4f make_vec4f(float x, float y, float z, float w) {
+vec4f vec4f_create(float x, float y, float z, float w) {
     vec4f result;
 
     result.x = x;
     result.y = y;
     result.z = z;
     result.w = w;
+
+    return result;
+}
+
+vec4f vec4f_divide(vec4f v, float x) {
+    vec4f result;
+
+    result.x = v.x / x;
+    result.y = v.y / x;
+    result.z = v.z / x;
+    result.w = v.w / x;
+
+    return result;
+}
+
+vec4f vec4f_sum_vec4f(vec4f v1, vec4f v2) {
+    vec4f result;
+
+    result.x = v1.x + v2.x;
+    result.y = v1.y + v2.y;
+    result.z = v1.z + v2.z;
+    result.w = v1.w + v2.w;
 
     return result;
 }

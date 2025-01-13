@@ -34,6 +34,9 @@ ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1);
 texture
 generate_map_texture(map m);
 
+texture
+generate_cascade_texture(radiance_cascade cascade);
+
 void
 init_map_pixels(map m);
 
@@ -57,6 +60,8 @@ merge_intervals(vec4f near, vec4f far);
 
 void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
+#define SHOW_RAYS_ON_MAP 1
+
 #define WIDTH 800
 #define HEIGHT 800
 
@@ -68,12 +73,12 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE_NUMBER 2
+#define CASCADE_NUMBER 1
 
 #define CASCADE0_PROBE_NUMBER_X 2
 #define CASCADE0_PROBE_NUMBER_Y 2
 #define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 130 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 100 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -130,9 +135,10 @@ int main(void) {
 
         generate_cascade(m, &cascades[cascade_index], cascade_index);
     }
-    apply_cascades(m, cascades, CASCADE_NUMBER);
+    // apply_cascades(m, cascades, CASCADE_NUMBER);
 
     texture map_texture = generate_map_texture(m);
+    texture cascade_texture = generate_cascade_texture(cascades[0]);
     setup_map_renderer(&vao, &vbo, &ebo);
     map_shader =
         shader_create_program("res/shaders/map.vs", "res/shaders/map.fs");
@@ -165,7 +171,8 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-        render_map(vao, map_texture, map_shader, m);
+        // render_map(vao, map_texture, map_shader, m);
+        render_map(vao, cascade_texture, map_shader, m);
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
@@ -201,6 +208,7 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
                 if (!(0 <= y && y < m.h)) continue; // out of map
 
                 int32 index = (int32) (y * m.w + x);
+#if SHOW_RAYS_ON_MAP != 1
                 if (!vec4f_equals(m.pixels[index], VOID)) {
                     return (vec4f) {
                         .r = m.pixels[index].r,
@@ -209,25 +217,27 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
                         .a = 0.f // alpha 0 means it hit something
                     };
                 }
-                // ### use this to draw the rays
-                // if (!vec4f_equals(m.pixels[index], VOID) &&
-                //     !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-                //     // printf("ciao ");
-                //     return (vec4f) {
-                //         .r = m.pixels[index].r,
-                //         .g = m.pixels[index].g,
-                //         .b = m.pixels[index].b,
-                //         .a = 0.f // alpha 0 means it hit something
-                //     };
-                // } else {
-                //     m.pixels[index] = RAY_CASTED;
-                // }
+#else
+                if (!vec4f_equals(m.pixels[index], VOID) &&
+                    !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+                    // printf("ciao ");
+                    return (vec4f) {
+                        .r = m.pixels[index].r,
+                        .g = m.pixels[index].g,
+                        .b = m.pixels[index].b,
+                        .a = 0.f // alpha 0 means it hit something
+                    };
+                } else {
+                    m.pixels[index] = RAY_CASTED;
+                }
+#endif
             }
         }
     } else {
         for(int32 y = MIN(start.y, end.y); y <= MAX(start.y, end.y); ++y) {
             int32 index = (int32) (y * m.w + start.x);
 
+#if SHOW_RAYS_ON_MAP != 1
             if (!vec4f_equals(m.pixels[index], VOID)) {
                 return (vec4f) {
                     .r = m.pixels[index].r,
@@ -236,19 +246,20 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
                         .a = 0.f // alpha 0 means it hit something
                 };
             }
-            // ### use this to draw the rays
-            // if (!vec4f_equals(m.pixels[index], VOID) &&
-            //     !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-            //     // printf("ciao ");
-            //     return (vec4f) {
-            //         .r = m.pixels[index].r,
-            //         .g = m.pixels[index].g,
-            //         .b = m.pixels[index].b,
-            //         .a = 0.f // alpha 0 means it hit something
-            //     };
-            // } else {
-            //     m.pixels[index] = RAY_CASTED;
-            // }
+#else
+            if (!vec4f_equals(m.pixels[index], VOID) &&
+                !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+                // printf("ciao ");
+                return (vec4f) {
+                    .r = m.pixels[index].r,
+                    .g = m.pixels[index].g,
+                    .b = m.pixels[index].b,
+                    .a = 0.f // alpha 0 means it hit something
+                };
+            } else {
+                m.pixels[index] = RAY_CASTED;
+            }
+#endif
         }
     }
 
@@ -277,6 +288,30 @@ texture generate_map_texture(map m) {
             GL_RGBA,
             GL_FLOAT, 
             m.pixels);
+    return tex;
+}
+
+texture generate_cascade_texture(radiance_cascade cascade) {
+    texture tex;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            cascade.probe_number.x * cascade.angular_number,
+            cascade.probe_number.y,
+            0,
+            GL_RGBA,
+            GL_FLOAT, 
+            cascade.data);
     return tex;
 }
 

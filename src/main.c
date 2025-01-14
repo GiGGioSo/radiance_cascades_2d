@@ -61,7 +61,7 @@ merge_intervals(vec4f near, vec4f far);
 
 void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
-#define SHOW_RAYS_ON_MAP 0
+#define SHOW_RAYS_ON_MAP 1
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -77,10 +77,10 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define CASCADE_NUMBER 2
 #define CASCADE_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 256
-#define CASCADE0_PROBE_NUMBER_Y 256
-#define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 2 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 4
+#define CASCADE0_PROBE_NUMBER_Y 4
+#define CASCADE0_ANGULAR_NUMBER 2
+#define CASCADE0_INTERVAL_LENGTH 80 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -642,14 +642,40 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
             vec4f *probe_up =
                 &cascade_up.data[probe_up_index * cascade_up.angular_number];
 
+            int32 probes_per_up_probe_row =
+                (int32) (1.f / (float) DIMENSION_SCALING);
+
+            int32 probe_up_x = probe_up_index % cascade_up.probe_number.x;
+            int32 probe_up_y = probe_up_index / cascade_up.probe_number.x;
+
             int32 probe_index_base =
-                probe_up_index * POW2(1.f / DIMENSION_SCALING);
+                probe_up_y *
+                    cascade_up.probe_number.x *
+                    POW2(probes_per_up_probe_row) +
+                probe_up_x * probes_per_up_probe_row;
 
             for(int32 probe_index_offset = 0;
-                    probe_index_offset < POW2(1.f / DIMENSION_SCALING);
+                    probe_index_offset < POW2(probes_per_up_probe_row);
                     ++probe_index_offset) {
 
-                int32 probe_index = probe_index_base + probe_index_offset;
+                // which row of the probe_up we are considering
+                int32 probe_index_base_row =
+                    probe_index_offset / probes_per_up_probe_row;
+
+                // which probe of the row of the probe_up we are considering
+                int32 probe_index_base_offset =
+                    probe_index_offset % probes_per_up_probe_row;
+
+                int32 probe_index =
+                    // number of probes in the previous probe_ups
+                    probe_index_base +
+                    // number of rows I'm skipping
+                    probe_index_base_row *
+                        // number of probes in a row
+                        cascade_up.probe_number.x * probes_per_up_probe_row +
+                    probe_index_base_offset;
+
+                // int32 probe_index = probe_index_base + probe_index_offset;
                 vec4f *probe =
                     &cascade.data[probe_index * cascade.angular_number];
 
@@ -657,10 +683,10 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
                         direction_index < cascade.angular_number;
                         ++direction_index) {
 
-                    vec4f average_up = {};
+                    vec4f average_radiance_up = {};
                     int32 direction_up_index_base =
                         direction_index * ANGULAR_SCALING;
-                    int32 average_alpha = 1.0f;
+                    // int32 average_alpha = 1.0f;
                     for(int32 direction_up_index_offset = 0;
                             direction_up_index_offset < ANGULAR_SCALING;
                             ++direction_up_index_offset) {
@@ -669,19 +695,24 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
                             direction_up_index_base + direction_up_index_offset;
                         // printf("direction_up_index(%d)\n", direction_up_index);
                         vec4f radiance_up = probe_up[direction_up_index];
-                        if (radiance_up.a == 0.f) {
-                            average_alpha = 0.f;
-                        }
-                        average_up = vec4f_sum_vec4f(
-                                average_up,
+                        // if (radiance_up.a == 0.f) {
+                        //     average_alpha = 0.f;
+                        // }
+                        average_radiance_up = vec4f_sum_vec4f(
+                                average_radiance_up,
                                 vec4f_divide(
                                     radiance_up,
                                     (float) ANGULAR_SCALING));
                     }
-                    average_up.a = average_alpha;
+                    // average_up.a = average_alpha;
 
+                    // TODO(gio) continua da qua
+                    printf("average_radiance_up(%f, %f, %f, %f)\n");
+                    printf("average_radiance_up(%f, %f, %f, %f)\n");
+
+                    vec4f probe_direction_radiance = probe[direction_index];
                     probe[direction_index] = merge_intervals(
-                            probe[direction_index],
+                            probe_direction_radiance,
                             average_up);
                 }
             }

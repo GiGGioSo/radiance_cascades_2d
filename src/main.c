@@ -74,12 +74,13 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE_NUMBER 5
+#define CASCADE_NUMBER 2
+#define CASCADE_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 128
-#define CASCADE0_PROBE_NUMBER_Y 128
+#define CASCADE0_PROBE_NUMBER_X 256
+#define CASCADE0_PROBE_NUMBER_Y 256
 #define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 10 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 2 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -140,7 +141,7 @@ int main(void) {
     apply_cascades(m, cascades, CASCADE_NUMBER);
 
     texture map_texture = generate_map_texture(m);
-    texture cascade_texture = generate_cascade_texture(cascades[0]);
+    texture cascade_texture = generate_cascade_texture(cascades[CASCADE_DRAW]);
     setup_map_renderer(&vao, &vbo, &ebo);
     map_shader =
         shader_create_program("res/shaders/map.vs", "res/shaders/map.fs");
@@ -173,8 +174,8 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-        render_map(vao, map_texture, map_shader, m);
-        // render_map(vao, cascade_texture, map_shader, m);
+        // render_map(vao, map_texture, map_shader, m);
+        render_map(vao, cascade_texture, map_shader, m);
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
@@ -183,25 +184,28 @@ int main(void) {
 }
 
 vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
+    vec4f result = {};
     vec2i start = {
         .x = CLAMP((int32) ((origin.x + direction.x * t0) + 0.5f),
-                0, m.w),
+                0, m.w-1),
         .y = CLAMP((int32) ((origin.y + direction.y * t0) + 0.5f),
-                0, m.h)
+                0, m.h-1)
     };
     vec2i end = {
         .x = CLAMP((int32) ((origin.x + direction.x * t1) + 0.5f),
-                0.f, (float) m.w),
+                0, m.w-1),
         .y = CLAMP((int32) ((origin.y + direction.y * t1) + 0.5f),
-                0, m.h)
+                0, m.h-1)
     };
 
     if (start.x != end.x) {
         float slope = direction.y / direction.x;
 
         for(int32 x = MIN(start.x, end.x); x < MAX(start.x, end.x); ++x) {
-            int32 y1 = (int32) (start.y + slope * ((float) x - start.x));
-            int32 y2 = (int32) (start.y + slope * ((float) x - start.x + 1));
+            int32 y1 = (int32) ((float) start.y +
+                    slope * ((float) x - (float) start.x));
+            int32 y2 = (int32) ((float) start.y +
+                    slope * ((float) x - (float) start.x + 1.f));
 
             // if (x == MAX(start.x, end.x)) {
             //     y2 = y1 + 1;
@@ -209,26 +213,27 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
             for(int32 y = MIN(y1, y2); y <= MAX(y1, y2); ++y) {
                 if (!(0 <= y && y < m.h)) continue; // out of map
 
-                int32 index = (int32) (y * m.w + x);
+                int32 index = y * m.w + x;
 #if SHOW_RAYS_ON_MAP != 1
                 if (!vec4f_equals(m.pixels[index], VOID)) {
-                    return (vec4f) {
+                    result = (vec4f) {
                         .r = m.pixels[index].r,
                         .g = m.pixels[index].g,
                         .b = m.pixels[index].b,
                         .a = 0.f // alpha 0 means it hit something
                     };
+                    return result;
                 }
 #else
                 if (!vec4f_equals(m.pixels[index], VOID) &&
                     !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-                    // printf("ciao ");
-                    return (vec4f) {
+                    result = (vec4f) {
                         .r = m.pixels[index].r,
                         .g = m.pixels[index].g,
                         .b = m.pixels[index].b,
                         .a = 0.f // alpha 0 means it hit something
                     };
+                    return result;
                 } else {
                     m.pixels[index] = RAY_CASTED;
                 }
@@ -241,22 +246,24 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
 
 #if SHOW_RAYS_ON_MAP != 1
             if (!vec4f_equals(m.pixels[index], VOID)) {
-                return (vec4f) {
-                    .r = m.pixels[index].r,
-                        .g = m.pixels[index].g,
-                        .b = m.pixels[index].b,
-                        .a = 0.f // alpha 0 means it hit something
-                };
-            }
-#else
-            if (!vec4f_equals(m.pixels[index], VOID) &&
-                !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-                return (vec4f) {
+                result = (vec4f) {
                     .r = m.pixels[index].r,
                     .g = m.pixels[index].g,
                     .b = m.pixels[index].b,
                     .a = 0.f // alpha 0 means it hit something
                 };
+                return result;
+            }
+#else
+            if (!vec4f_equals(m.pixels[index], VOID) &&
+                !vec4f_equals(m.pixels[index], RAY_CASTED)) {
+                result = (vec4f) {
+                    .r = m.pixels[index].r,
+                    .g = m.pixels[index].g,
+                    .b = m.pixels[index].b,
+                    .a = 0.f // alpha 0 means it hit something
+                };
+                return result;
             } else {
                 m.pixels[index] = RAY_CASTED;
             }
@@ -265,7 +272,13 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
     }
 
     // alpha 1 means it hit nothing
-    return (vec4f) { .r = 0.f, .g = 0.f, .b = 0.f, .a = 1.f };
+    result = (vec4f) {
+        .r = 0.f,
+        .g = 0.f,
+        .b = 0.f,
+        .a = 1.f
+    };
+    return result;
 }
 
 texture generate_map_texture(map m) {
@@ -531,9 +544,9 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
         float interval_length =
             base_interval * cascade_interval_scaling;
         float interval_start =
-            (powf((float) base_interval,
-                  (float) cascade_index) -
-             base_interval) / (base_interval - 1);
+            (powf((float) base_interval, (float) cascade_index) -
+              (float) base_interval) /
+            (float) (base_interval - 1);
         float interval_end = interval_start + interval_length;
         cascade->interval = (vec2f) {
             .x = interval_start,
@@ -554,9 +567,7 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
                 sizeof(vec4f));
         printf("cascade(%d) data_length(%d)\n",
                 cascade_index,
-                cascade->probe_number.x *
-                cascade->probe_number.y *
-                cascade->angular_number);
+                cascade->data_length);
     }
 
     // ### Do the rest
@@ -564,19 +575,23 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
         for(int32 y = 0; y < cascade->probe_number.y; ++y) {
             // probe center position to raycast from
             vec2f probe_center = {
-                .x = cascade->probe_size.x * (x + 0.5f),
-                .y = cascade->probe_size.y * (y + 0.5f),
+                .x = (float) cascade->probe_size.x * (x + 0.5f),
+                .y = (float) cascade->probe_size.y * (y + 0.5f),
             };
 
             for(int32 direction_index = 0;
                 direction_index < cascade->angular_number;
                 ++direction_index) {
                 float direction_angle =
-                    2 * PI *
+                    2.f * PI *
                     (((float) direction_index + 0.5f) /
                      (float) cascade->angular_number);
 
                 vec2f ray_direction = vec2f_from_angle(direction_angle);
+
+                int32 result_index =
+                    (y * cascade->probe_number.x + x) *
+                    cascade->angular_number + direction_index;
 
                 vec4f result =
                     ray_intersect(
@@ -585,15 +600,6 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
                             ray_direction,
                             cascade->interval.x,
                             cascade->interval.y);
-
-                int32 result_index =
-                    (y * cascade->probe_number.x + x) *
-                    cascade->angular_number + direction_index;
-
-                if (result_index >= cascade->data_length) {
-                    printf("overflow! cascade(%d) invalid_index(%d)\n",
-                            cascade_index, result_index);
-                }
 
                 cascade->data[result_index] = result;
 
@@ -637,10 +643,10 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
                 &cascade_up.data[probe_up_index * cascade_up.angular_number];
 
             int32 probe_index_base =
-                probe_up_index * POW2(DIMENSION_SCALING);
+                probe_up_index * POW2(1.f / DIMENSION_SCALING);
 
             for(int32 probe_index_offset = 0;
-                    probe_index_offset < POW2(DIMENSION_SCALING);
+                    probe_index_offset < POW2(1.f / DIMENSION_SCALING);
                     ++probe_index_offset) {
 
                 int32 probe_index = probe_index_base + probe_index_offset;
@@ -661,6 +667,7 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
 
                         int32 direction_up_index =
                             direction_up_index_base + direction_up_index_offset;
+                        // printf("direction_up_index(%d)\n", direction_up_index);
                         vec4f radiance_up = probe_up[direction_up_index];
                         if (radiance_up.a == 0.f) {
                             average_alpha = 0.f;
@@ -669,7 +676,7 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
                                 average_up,
                                 vec4f_divide(
                                     radiance_up,
-                                    ANGULAR_SCALING));
+                                    (float) ANGULAR_SCALING));
                     }
                     average_up.a = average_alpha;
 
@@ -683,17 +690,20 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
 
     // applying cascades into the pixels
     radiance_cascade cascade0 = cascades[0];
-    printf("probe_size(%f, %f)\n", cascade0.probe_size.x, cascade0.probe_size.y);
-    printf("angular_number(%d)\n", cascade0.angular_number);
     for (int32 pixel_index = 0; pixel_index < m.w * m.h; ++pixel_index) {
         int32 x = pixel_index % m.w;
         int32 y = pixel_index / m.w;
 
         int32 probe_x = x / cascade0.probe_size.x;
         int32 probe_y = y / cascade0.probe_size.y;
-        int32 probe_index = probe_y * cascade0.probe_number.x + probe_x;
+        int32 probe_index =
+            (probe_y * cascade0.probe_number.x + probe_x) *
+            cascade0.angular_number;
 
-        vec4f *probe = &cascade0.data[probe_index * cascade0.angular_number];
+        // printf("pixel(%d, %d) probe(%d, %d) probe_index(%d)\n",
+        //         x, y, probe_x, probe_y, probe_index);
+
+        vec4f *probe = &cascade0.data[probe_index];
 
         vec4f average = {};
         for(int32 direction_index = 0;

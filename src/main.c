@@ -22,6 +22,7 @@ typedef struct map {
 
 typedef struct radiance_cascade {
     vec4f *data;
+    int32 data_length;
     vec2i probe_number;
     int32 angular_number;
     vec2f interval;
@@ -60,7 +61,7 @@ merge_intervals(vec4f near, vec4f far);
 
 void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
-#define SHOW_RAYS_ON_MAP 1
+#define SHOW_RAYS_ON_MAP 0
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -73,12 +74,12 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
 // # Cascades parameters
-#define CASCADE_NUMBER 1
+#define CASCADE_NUMBER 5
 
-#define CASCADE0_PROBE_NUMBER_X 2
-#define CASCADE0_PROBE_NUMBER_Y 2
+#define CASCADE0_PROBE_NUMBER_X 128
+#define CASCADE0_PROBE_NUMBER_Y 128
 #define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 100 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 10 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 2
@@ -91,7 +92,7 @@ int main(void) {
         .w = WIDTH,
         .h = HEIGHT
     };
-    m.pixels = malloc(sizeof(vec4f) * m.w * m.h);
+    m.pixels = calloc(m.w * m.h, sizeof(vec4f));
 
     radiance_cascade *cascades =
         calloc(CASCADE_NUMBER, sizeof(radiance_cascade));
@@ -133,9 +134,10 @@ int main(void) {
         cascade_index < CASCADE_NUMBER;
         ++cascade_index) {
 
+        printf("generating cascade %d\n", cascade_index);
         generate_cascade(m, &cascades[cascade_index], cascade_index);
     }
-    // apply_cascades(m, cascades, CASCADE_NUMBER);
+    apply_cascades(m, cascades, CASCADE_NUMBER);
 
     texture map_texture = generate_map_texture(m);
     texture cascade_texture = generate_cascade_texture(cascades[0]);
@@ -171,8 +173,8 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-        // render_map(vao, map_texture, map_shader, m);
-        render_map(vao, cascade_texture, map_shader, m);
+        render_map(vao, map_texture, map_shader, m);
+        // render_map(vao, cascade_texture, map_shader, m);
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
@@ -249,7 +251,6 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
 #else
             if (!vec4f_equals(m.pixels[index], VOID) &&
                 !vec4f_equals(m.pixels[index], RAY_CASTED)) {
-                // printf("ciao ");
                 return (vec4f) {
                     .r = m.pixels[index].r,
                     .g = m.pixels[index].g,
@@ -512,7 +513,7 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
     if (cascade->data == NULL) {
         // probe count for each dimension
         float cascade_dimension_scaling =
-            powf(DIMENSION_SCALING, cascade_index);
+            powf((float) DIMENSION_SCALING, (float) cascade_index);
         cascade->probe_number = (vec2i) {
             .x = CASCADE0_PROBE_NUMBER_X * cascade_dimension_scaling,
                 .y = CASCADE0_PROBE_NUMBER_Y * cascade_dimension_scaling
@@ -520,18 +521,19 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
 
         // angular frequency
         float cascade_angular_scaling =
-            powf(ANGULAR_SCALING, cascade_index);
+            powf((float) ANGULAR_SCALING, (float) cascade_index);
         cascade->angular_number = CASCADE0_ANGULAR_NUMBER * cascade_angular_scaling;
 
         // ray cast interval dimension
         float base_interval = CASCADE0_INTERVAL_LENGTH;
         float cascade_interval_scaling =
-            powf(INTERVAL_SCALING, cascade_index);
+            powf((float) INTERVAL_SCALING, (float) cascade_index);
         float interval_length =
             base_interval * cascade_interval_scaling;
         float interval_start =
-            (powf(base_interval, cascade_index + 1) - base_interval) /
-            (base_interval - 1);
+            (powf((float) base_interval,
+                  (float) cascade_index) -
+             base_interval) / (base_interval - 1);
         float interval_end = interval_start + interval_length;
         cascade->interval = (vec2f) {
             .x = interval_start,
@@ -543,14 +545,18 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
         };
 
         // allocate cascade memory
-        cascade->data = malloc(
-                cascade->probe_number.x *
-                cascade->probe_number.y *
-                cascade->angular_number *
+        cascade->data_length =
+            cascade->probe_number.x *
+            cascade->probe_number.y *
+            cascade->angular_number;
+        cascade->data = calloc(
+                cascade->data_length,
                 sizeof(vec4f));
         printf("cascade(%d) data_length(%d)\n",
                 cascade_index,
-                cascade->probe_number.x * cascade->probe_number.y * cascade->angular_number);
+                cascade->probe_number.x *
+                cascade->probe_number.y *
+                cascade->angular_number);
     }
 
     // ### Do the rest
@@ -581,7 +587,13 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
                             cascade->interval.y);
 
                 int32 result_index =
-                    (x + y) * cascade->angular_number + direction_index;
+                    (y * cascade->probe_number.x + x) *
+                    cascade->angular_number + direction_index;
+
+                if (result_index >= cascade->data_length) {
+                    printf("overflow! cascade(%d) invalid_index(%d)\n",
+                            cascade_index, result_index);
+                }
 
                 cascade->data[result_index] = result;
 

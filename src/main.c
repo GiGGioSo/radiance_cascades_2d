@@ -67,8 +67,8 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
 #define VOID (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 0.f }
 #define OBSTACLE (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 1.f }
-#define RED_LIGHT (vec4f){ .r = 1.f, .g = 0, .b = 0, .a = 1.f }
-#define GREEN_LIGHT (vec4f){ .r = 0, .g = 0.5f, .b = 0.7f, .a = 1.f }
+#define RED_LIGHT (vec4f){ .r = 1.3f, .g = 0, .b = 0, .a = 1.f }
+#define GREEN_LIGHT (vec4f){ .r = 0.f, .g = 0.6f, .b = 0.f, .a = 1.f }
 #define BLUE_LIGHT (vec4f){ .r = 0, .g = 0, .b = 1.f, .a = 1.f }
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 #define SKYBOX (vec4f){ .r = 0.1f, .g = 0.1f, .b = 0.1f, .a = 1.f }

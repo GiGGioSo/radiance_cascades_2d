@@ -8,27 +8,27 @@
 
 ## To-Do (vaguely ordered by priority and ease of implementation)
 
-[ ] Interval overlap: how much of the next inverval overlaps with the previous one (percentage?)
+- [ ] Interval overlap: how much of the next inverval overlaps with the previous one (percentage?)
 
-[ ] Free allocated stuff
+- [ ] Free allocated stuff
 
-[ ] Bilinear filtering
+- [ ] Bilinear filtering
 
-[ ] Single texture for all of the cascades (they will need to vertically fill the texture)
+- [ ] Single texture for all of the cascades (they will need to vertically fill the texture)
 
-[ ] Move cascades calculations on the gpu
-    [ ] cascades creation
-    [ ] cascades merging
+- [ ] Move cascades calculations on the gpu
+    - [ ] cascades creation
+    - [ ] cascades merging
 
-[ ] Calculate cascades for each frame (moving objects)
+- [ ] Calculate cascades for each frame (moving objects)
 
-[ ] Setup benchmarking environment
-    [ ] Test cases
-    [ ] Logging
-    [ ] Data visualization
+- [ ] Setup benchmarking environment
+    - [ ] Test cases
+    - [ ] Logging
+    - [ ] Data visualization
 
 ## Investigate
 
-[ ] Different memory layouts
-    [x] for each cascade, probes are adjecent (default)
-    [ ] for each cascade, every direction ray data is adjecent
+- [ ] Different memory layouts
+    - [x] for each cascade, probes are adjecent (default)
+    - [ ] for each cascade, every direction ray data is adjecent

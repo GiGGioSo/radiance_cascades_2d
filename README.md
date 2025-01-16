@@ -1,6 +1,6 @@
 # radiance\_cascades\_2d
 
-2D implementation of Radiance Cascades (created by [Alexander Sannikov](https://www.linkedin.com/in/alexander-sannikov-9964aa188/))
+2D implementation of Radiance Cascades (invented by [Alexander Sannikov](https://www.linkedin.com/in/alexander-sannikov-9964aa188/))
 
 ![radiance\_cascades\_rays](images/radiance_rays.png)
 

@@ -75,13 +75,13 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define SHOW_RAYS_ON_MAP 0
 
 // # Cascades parameters
-#define CASCADE_NUMBER 7
+#define CASCADE_NUMBER 9
 #define CASCADE_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 800
-#define CASCADE0_PROBE_NUMBER_Y 800
-#define CASCADE0_ANGULAR_NUMBER 4
-#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 400
+#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_ANGULAR_NUMBER 8
+#define CASCADE0_INTERVAL_LENGTH 8 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 3
@@ -397,17 +397,30 @@ void init_map_pixels(map m) {
     // }
 
     rectangle red_light = {
-        .pos = (vec2f) { 200.f, 400.f },
+        .pos = (vec2f) { 200.f, 200.f },
         .dim = (vec2f) { 400.f, 50.f },
         .color = RED_LIGHT
     };
     draw_rectangle_on_map_pixels(m, red_light);
     rectangle green_light = {
-        .pos = (vec2f) { 375.f, 300.f },
-        .dim = (vec2f) { 50.f, 200.f },
+        .pos = (vec2f) { 200.f, 550.f },
+        .dim = (vec2f) { 400.f, 50.f },
         .color = GREEN_LIGHT
     };
     draw_rectangle_on_map_pixels(m, green_light);
+
+    rectangle obstacle_up = {
+        .pos = (vec2f) { 400.f, 130.f },
+        .dim = (vec2f) { 100.f, 20.f },
+        .color = OBSTACLE
+    };
+    draw_rectangle_on_map_pixels(m, obstacle_up);
+    rectangle obstacle_down = {
+        .pos = (vec2f) { 300.f, 650.f },
+        .dim = (vec2f) { 100.f, 20.f },
+        .color = OBSTACLE
+    };
+    draw_rectangle_on_map_pixels(m, obstacle_down);
 
     // rectangle obstacle = {
     //     .pos = (vec2f) { 400.f, 300.f },
@@ -418,8 +431,8 @@ void init_map_pixels(map m) {
 
     circle c1 = {
         .center = (vec2f) {
-            .x = 500.f,
-            .y = 400.f
+            .x = 200.f,
+            .y = 450.f
         },
         .radius = 50.f,
         .color = OBSTACLE
@@ -427,13 +440,22 @@ void init_map_pixels(map m) {
     draw_circle_on_map_pixels(m, c1);
     circle c2 = {
         .center = (vec2f) {
-            .x = 200.f,
-            .y = 300.f
+            .x = 400.f,
+            .y = 400.f
         },
         .radius = 50.f,
         .color = OBSTACLE
     };
     draw_circle_on_map_pixels(m, c2);
+    circle c3 = {
+        .center = (vec2f) {
+            .x = 600.f,
+            .y = 450.f
+        },
+        .radius = 50.f,
+        .color = OBSTACLE
+    };
+    draw_circle_on_map_pixels(m, c3);
 
     // vec2f ray_origin = {
     //     .x = (0 / 2) + 15.f,

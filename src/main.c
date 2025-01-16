@@ -61,7 +61,6 @@ merge_intervals(vec4f near, vec4f far);
 
 void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
-#define SHOW_RAYS_ON_MAP 1
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -73,17 +72,19 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define BLUE_LIGHT (vec4f){ .r = 0, .g = 0, .b = 1.f, .a = 1.f }
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 
+#define SHOW_RAYS_ON_MAP 0
+
 // # Cascades parameters
-#define CASCADE_NUMBER 2
+#define CASCADE_NUMBER 7
 #define CASCADE_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 4
-#define CASCADE0_PROBE_NUMBER_Y 4
-#define CASCADE0_ANGULAR_NUMBER 2
-#define CASCADE0_INTERVAL_LENGTH 80 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 800
+#define CASCADE0_PROBE_NUMBER_Y 800
+#define CASCADE0_ANGULAR_NUMBER 4
+#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
-#define INTERVAL_SCALING 2
+#define INTERVAL_SCALING 3
 
 int main(void) {
     // variables
@@ -174,8 +175,8 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-        // render_map(vao, map_texture, map_shader, m);
-        render_map(vao, cascade_texture, map_shader, m);
+        render_map(vao, map_texture, map_shader, m);
+        // render_map(vao, cascade_texture, map_shader, m);
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
@@ -201,16 +202,25 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
     if (start.x != end.x) {
         float slope = direction.y / direction.x;
 
-        for(int32 x = MIN(start.x, end.x); x < MAX(start.x, end.x); ++x) {
+        int32 direction_x = DIRECTION(end.x - start.x);
+
+        for(int32 x = start.x;
+            x * direction_x < end.x * direction_x;
+            x += direction_x) {
+
+            // printf("x(%d)\n", x);
+
             int32 y1 = (int32) ((float) start.y +
                     slope * ((float) x - (float) start.x));
             int32 y2 = (int32) ((float) start.y +
-                    slope * ((float) x - (float) start.x + 1.f));
+                    slope * ((float) x - (float) start.x + (float) direction_x));
 
-            // if (x == MAX(start.x, end.x)) {
-            //     y2 = y1 + 1;
-            // }
-            for(int32 y = MIN(y1, y2); y <= MAX(y1, y2); ++y) {
+            int32 direction_y = DIRECTION(y2 - y1);
+            for(int32 y = y1;
+                y * direction_y <= y2 * direction_y;
+                y += direction_y) {
+                // printf("y(%d)\n", y);
+
                 if (!(0 <= y && y < m.h)) continue; // out of map
 
                 int32 index = y * m.w + x;
@@ -359,39 +369,71 @@ void init_map_pixels(map m) {
     //     }
     // }
 
-    int32 sphere_number = 10;
-    float radius_min = 5.f;
-    float radius_max = 30.f;
+    // int32 sphere_number = 10;
+    // float radius_min = 5.f;
+    // float radius_max = 30.f;
 
-    for(int32 sphere_x = 0;
-        sphere_x < sphere_number;
-        ++sphere_x) {
-        for(int32 sphere_y = 0;
-            sphere_y < sphere_number;
-            ++sphere_y) {
+    // for(int32 sphere_x = 0;
+    //     sphere_x < sphere_number;
+    //     ++sphere_x) {
+    //     for(int32 sphere_y = 0;
+    //         sphere_y < sphere_number;
+    //         ++sphere_y) {
 
-             circle c = {
-                 .center = (vec2f) {
-                     .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
-                     .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
-                 },
-                 .radius =
-                     (float) radius_min +
-                     (float) (radius_max - radius_min) *
-                     ((float) (sphere_x + sphere_y) /
-                        (2.f * sphere_number - 2.f)),
-                 .color = RED_LIGHT
-             };
-             // draw_circle_on_map_pixels(m, c);
-        }
-    }
+    //          circle c = {
+    //              .center = (vec2f) {
+    //                  .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
+    //                  .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
+    //              },
+    //              .radius =
+    //                  (float) radius_min +
+    //                  (float) (radius_max - radius_min) *
+    //                  ((float) (sphere_x + sphere_y) /
+    //                     (2.f * sphere_number - 2.f)),
+    //              .color = RED_LIGHT
+    //          };
+    //          // draw_circle_on_map_pixels(m, c);
+    //     }
+    // }
 
-    rectangle r = {
-        .pos = (vec2f) { 440.f, 150.f },
-        .dim = (vec2f) { 200.f, 150.f },
-        .color = (vec4f) { 0.f, 1.f, 0.f, 1.f }
+    rectangle red_light = {
+        .pos = (vec2f) { 200.f, 400.f },
+        .dim = (vec2f) { 400.f, 50.f },
+        .color = RED_LIGHT
     };
-    draw_rectangle_on_map_pixels(m, r);
+    draw_rectangle_on_map_pixels(m, red_light);
+    rectangle green_light = {
+        .pos = (vec2f) { 375.f, 300.f },
+        .dim = (vec2f) { 50.f, 200.f },
+        .color = GREEN_LIGHT
+    };
+    draw_rectangle_on_map_pixels(m, green_light);
+
+    // rectangle obstacle = {
+    //     .pos = (vec2f) { 400.f, 300.f },
+    //     .dim = (vec2f) { 300.f, 50.f },
+    //     .color = OBSTACLE
+    // };
+    // draw_rectangle_on_map_pixels(m, obstacle);
+
+    circle c1 = {
+        .center = (vec2f) {
+            .x = 500.f,
+            .y = 400.f
+        },
+        .radius = 50.f,
+        .color = OBSTACLE
+    };
+    draw_circle_on_map_pixels(m, c1);
+    circle c2 = {
+        .center = (vec2f) {
+            .x = 200.f,
+            .y = 300.f
+        },
+        .radius = 50.f,
+        .color = OBSTACLE
+    };
+    draw_circle_on_map_pixels(m, c2);
 
     // vec2f ray_origin = {
     //     .x = (0 / 2) + 15.f,
@@ -707,13 +749,13 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
                     // average_up.a = average_alpha;
 
                     // TODO(gio) continua da qua
-                    printf("average_radiance_up(%f, %f, %f, %f)\n");
-                    printf("average_radiance_up(%f, %f, %f, %f)\n");
+                    // printf("average_radiance_up(%f, %f, %f, %f)\n");
+                    // printf("average_radiance_up(%f, %f, %f, %f)\n");
 
                     vec4f probe_direction_radiance = probe[direction_index];
                     probe[direction_index] = merge_intervals(
                             probe_direction_radiance,
-                            average_up);
+                            average_radiance_up);
                 }
             }
         }

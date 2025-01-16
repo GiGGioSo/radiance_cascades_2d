@@ -10,6 +10,12 @@
 #include <stdint.h>
 #include <math.h>
 
+#ifndef DIRECTION
+#define DIRECTION(x) (((x) > 0) ? 1 : -1)
+#endif
+#ifndef SIGN
+#define SIGN(x) (((x) > 0) ? 1 : (((x) < 0) ? -1 : 0))
+#endif
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif

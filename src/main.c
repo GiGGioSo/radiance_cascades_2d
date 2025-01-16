@@ -68,14 +68,15 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define VOID (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 0.f }
 #define OBSTACLE (vec4f){ .r = 0.f, .g = 0, .b = 0, .a = 1.f }
 #define RED_LIGHT (vec4f){ .r = 1.f, .g = 0, .b = 0, .a = 1.f }
-#define GREEN_LIGHT (vec4f){ .r = 0, .g = 1.f, .b = 0, .a = 1.f }
+#define GREEN_LIGHT (vec4f){ .r = 0, .g = 0.5f, .b = 0.7f, .a = 1.f }
 #define BLUE_LIGHT (vec4f){ .r = 0, .g = 0, .b = 1.f, .a = 1.f }
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
+#define SKYBOX (vec4f){ .r = 0.1f, .g = 0.1f, .b = 0.1f, .a = 1.f }
 
 #define SHOW_RAYS_ON_MAP 0
 
 // # Cascades parameters
-#define CASCADE_NUMBER 9
+#define CASCADE_NUMBER 5
 #define CASCADE_DRAW 0
 
 #define CASCADE0_PROBE_NUMBER_X 400
@@ -83,8 +84,8 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 #define CASCADE0_ANGULAR_NUMBER 8
 #define CASCADE0_INTERVAL_LENGTH 8 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
-#define ANGULAR_SCALING 2
-#define INTERVAL_SCALING 3
+#define ANGULAR_SCALING 3
+#define INTERVAL_SCALING 4
 
 int main(void) {
     // variables
@@ -123,7 +124,7 @@ int main(void) {
     }
 
     glfwMakeContextCurrent(glfw_win);
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         fprintf(stderr, "[ERROR] Failed to initialize GLAD\n");
@@ -187,17 +188,25 @@ int main(void) {
 vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
     vec4f result = {};
     vec2i start = {
-        .x = CLAMP((int32) ((origin.x + direction.x * t0) + 0.5f),
-                0, m.w-1),
-        .y = CLAMP((int32) ((origin.y + direction.y * t0) + 0.5f),
-                0, m.h-1)
+        .x = (int32) ((origin.x + direction.x * t0) + 0.5f),
+        .y = (int32) ((origin.y + direction.y * t0) + 0.5f)
     };
     vec2i end = {
-        .x = CLAMP((int32) ((origin.x + direction.x * t1) + 0.5f),
-                0, m.w-1),
-        .y = CLAMP((int32) ((origin.y + direction.y * t1) + 0.5f),
-                0, m.h-1)
+        .x = (int32) ((origin.x + direction.x * t1) + 0.5f),
+        .y = (int32) ((origin.y + direction.y * t1) + 0.5f)
     };
+    // vec2i start = {
+    //     .x = CLAMP((int32) ((origin.x + direction.x * t0) + 0.5f),
+    //             0, m.w-1),
+    //     .y = CLAMP((int32) ((origin.y + direction.y * t0) + 0.5f),
+    //             0, m.h-1)
+    // };
+    // vec2i end = {
+    //     .x = CLAMP((int32) ((origin.x + direction.x * t1) + 0.5f),
+    //             0, m.w-1),
+    //     .y = CLAMP((int32) ((origin.y + direction.y * t1) + 0.5f),
+    //             0, m.h-1)
+    // };
 
     if (start.x != end.x) {
         float slope = direction.y / direction.x;
@@ -207,6 +216,7 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
         for(int32 x = start.x;
             x * direction_x < end.x * direction_x;
             x += direction_x) {
+            if (!(0 <= x && x < m.w)) continue;
 
             // printf("x(%d)\n", x);
 
@@ -251,7 +261,11 @@ vec4f ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {
             }
         }
     } else {
-        for(int32 y = MIN(start.y, end.y); y <= MAX(start.y, end.y); ++y) {
+        int32 direction_y = DIRECTION(end.y - start.y);
+        for(int32 y = start.y;
+            y * direction_y <= end.y * direction_y;
+            y += direction_y) {
+            if (!(0 <= y && y < m.h)) continue; // out of map
             int32 index = (int32) (y * m.w + start.x);
 
 #if SHOW_RAYS_ON_MAP != 1
@@ -345,33 +359,9 @@ void init_map_pixels(map m) {
         m.pixels[index] = VOID;
     }
 
-    // // light source: middle left
-    // int32 light_w = 20;
-    // int32 light_h = m.h / 3;
-    // int32 light_x = (m.w / 4) - (light_w / 2);
-    // int32 light_y = (m.h / 2) - (light_h / 2);
-    // for(int32 y = light_y; y < light_y + light_h; ++y) {
-    //     for(int32 x = light_x; x < light_x + light_w; ++x) {
-    //         int32 index = y * m.w + x;
-    //         m.pixels[index] = RED_LIGHT;
-    //     }
-    // }
-
-    // // obstacle: center down
-    // int32 obstacle_w = 30;
-    // int32 obstacle_h = m.h / 3;
-    // int32 obstacle_x = (m.w / 2) - (obstacle_w / 2);
-    // int32 obstacle_y = (m.h / 2);
-    // for(int32 y = obstacle_y; y < obstacle_y + obstacle_h; ++y) {
-    //     for(int32 x = obstacle_x; x < obstacle_x + obstacle_w; ++x) {
-    //         int32 index = y * m.w + x;
-    //         m.pixels[index] = OBSTACLE;
-    //     }
-    // }
-
-    // int32 sphere_number = 10;
-    // float radius_min = 5.f;
-    // float radius_max = 30.f;
+    // int32 sphere_number = 4;
+    // float radius_min = 10.f;
+    // float radius_max = 50.f;
 
     // for(int32 sphere_x = 0;
     //     sphere_x < sphere_number;
@@ -380,19 +370,24 @@ void init_map_pixels(map m) {
     //         sphere_y < sphere_number;
     //         ++sphere_y) {
 
-    //          circle c = {
-    //              .center = (vec2f) {
-    //                  .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
-    //                  .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
-    //              },
-    //              .radius =
-    //                  (float) radius_min +
-    //                  (float) (radius_max - radius_min) *
-    //                  ((float) (sphere_x + sphere_y) /
-    //                     (2.f * sphere_number - 2.f)),
-    //              .color = RED_LIGHT
-    //          };
-    //          // draw_circle_on_map_pixels(m, c);
+    //         vec4f sphere_color = OBSTACLE;
+    //         if ((sphere_x + sphere_y + 3) % 6 == 0) {
+    //             sphere_color = GREEN_LIGHT;
+    //         }
+
+    //         circle c = {
+    //             .center = (vec2f) {
+    //                 .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
+    //                 .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
+    //             },
+    //             .radius =
+    //                 (float) radius_min +
+    //                 (float) (radius_max - radius_min) *
+    //                 ((float) (sphere_x + sphere_y) /
+    //                  (2.f * sphere_number - 2.f)),
+    //             .color = sphere_color
+    //         };
+    //         draw_circle_on_map_pixels(m, c);
     //     }
     // }
 
@@ -422,13 +417,6 @@ void init_map_pixels(map m) {
     };
     draw_rectangle_on_map_pixels(m, obstacle_down);
 
-    // rectangle obstacle = {
-    //     .pos = (vec2f) { 400.f, 300.f },
-    //     .dim = (vec2f) { 300.f, 50.f },
-    //     .color = OBSTACLE
-    // };
-    // draw_rectangle_on_map_pixels(m, obstacle);
-
     circle c1 = {
         .center = (vec2f) {
             .x = 200.f,
@@ -457,22 +445,6 @@ void init_map_pixels(map m) {
     };
     draw_circle_on_map_pixels(m, c3);
 
-    // vec2f ray_origin = {
-    //     .x = (0 / 2) + 15.f,
-    //     .y = m.h / 2
-    // };
-    // vec2f ray_direction = {
-    //     .x = 1.f,
-    //     .y = -0.3f
-    // };
- //    vec4f intersection_result =
- //        ray_intersect(m, ray_origin, ray_direction, 2.f, m.w / 4);
-
- //    printf("Intersection result: %f, %f, %f, %f\n",
- //            intersection_result.x,
- //            intersection_result.y,
- //            intersection_result.z,
- //            intersection_result.w);
 }
 
 void draw_circle_on_map_pixels(map m, circle c) {
@@ -783,8 +755,17 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number) {
         }
     }
 
-    // applying cascades into the pixels
     radiance_cascade cascade0 = cascades[0];
+    // merge skybox into first cascade
+    vec4f skybox_color = SKYBOX;
+    for(int32 data_index = 0;
+        data_index < cascade0.data_length;
+        ++data_index) {
+        cascade0.data[data_index] =
+            vec4f_sum_vec4f(cascade0.data[data_index], skybox_color);
+    }
+
+    // applying cascades into the pixels
     for (int32 pixel_index = 0; pixel_index < m.w * m.h; ++pixel_index) {
         int32 x = pixel_index % m.w;
         int32 y = pixel_index / m.w;

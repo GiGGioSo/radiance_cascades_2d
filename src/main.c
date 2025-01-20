@@ -81,11 +81,12 @@ void apply_cascades(map m, radiance_cascade *cascades, int32 cascades_number);
 
 #define CASCADE0_PROBE_NUMBER_X 400
 #define CASCADE0_PROBE_NUMBER_Y 400
-#define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 8 // in pixels
+#define CASCADE0_ANGULAR_NUMBER 4
+#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
-#define ANGULAR_SCALING 3
+#define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
+#define INTERVAL_OVERLAP 0.3f // from 0 (no overlap) to 1 (full overlap)
 
 int main(void) {
     // variables
@@ -580,9 +581,9 @@ void generate_cascade(map m, radiance_cascade *cascade, int32 cascade_index) {
         float interval_length =
             base_interval * cascade_interval_scaling;
         float interval_start =
-            (powf((float) base_interval, (float) cascade_index) -
+            ((powf((float) base_interval, (float) cascade_index + 1.f) -
               (float) base_interval) /
-            (float) (base_interval - 1);
+            (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
         float interval_end = interval_start + interval_length;
         cascade->interval = (vec2f) {
             .x = interval_start,

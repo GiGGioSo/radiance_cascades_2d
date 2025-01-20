@@ -8,7 +8,7 @@
 
 ## To-Do (vaguely ordered by priority and ease of implementation)
 
-- [ ] Interval overlap: how much of the next inverval overlaps with the previous one (percentage?)
+- [x] Interval overlap: how much of the next inverval overlaps with the previous one (0 to 1)
 
 - [ ] Free allocated stuff
 

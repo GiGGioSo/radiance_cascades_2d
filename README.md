@@ -10,9 +10,11 @@
 
 - [x] Interval overlap: how much of the next inverval overlaps with the previous one (0 to 1)
 
-- [ ] Free allocated stuff
+- [x] Free allocated stuff
 
 - [ ] Bilinear filtering
+
+- [ ] Save resulting render to file
 
 - [ ] Single texture for all of the cascades (they will need to vertically fill the texture)
 

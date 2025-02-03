@@ -20,10 +20,8 @@
 #define RADIANCE_CASCADES_CASCADES_IMPLEMENTATION
 #include "cascades.h"
 
-void texture_render(GLuint vao, texture texture, shader_program shader);
-
-void
-init_map_pixels(map m);
+#define RADIANCE_CASCADES_TESTS_IMPLEMENTATION
+#include "tests.h"
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -66,7 +64,7 @@ int main(void) {
         return 1;
     }
 
-    init_map_pixels(m);
+    INIT_MAP(m);
     // ### test ###
     for(int32 cascade_index = 0;
         cascade_index < CASCADE_NUMBER;
@@ -136,110 +134,4 @@ int main(void) {
         ++cascade_index) {
         cascade_free(&cascades[cascade_index]);
     }
-}
-
-void texture_render(
-        GLuint vao,
-        texture texture,
-        shader_program shader) {
-    // bind textures on corresponding texture units
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    // render container
-    glUseProgram(shader);
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-
-void init_map_pixels(map m) {
-    // // fill the void
-    for(int32 index = 0; index < m.w * m.h; ++index) {
-        m.pixels[index] = VOID;
-    }
-
-    // int32 sphere_number = 4;
-    // float radius_min = 10.f;
-    // float radius_max = 50.f;
-
-    // for(int32 sphere_x = 0;
-    //     sphere_x < sphere_number;
-    //     ++sphere_x) {
-    //     for(int32 sphere_y = 0;
-    //         sphere_y < sphere_number;
-    //         ++sphere_y) {
-
-    //         vec4f sphere_color = OBSTACLE;
-    //         if ((sphere_x + sphere_y + 3) % 6 == 0) {
-    //             sphere_color = GREEN_LIGHT;
-    //         }
-
-    //         circle c = {
-    //             .center = (vec2f) {
-    //                 .x = ((float)m.w / (float)sphere_number) * (sphere_x + 0.5f),
-    //                 .y = ((float)m.h / (float)sphere_number) * (sphere_y + 0.5f)
-    //             },
-    //             .radius =
-    //                 (float) radius_min +
-    //                 (float) (radius_max - radius_min) *
-    //                 ((float) (sphere_x + sphere_y) /
-    //                  (2.f * sphere_number - 2.f)),
-    //             .color = sphere_color
-    //         };
-    //         map_draw_circle(m, c);
-    //     }
-    // }
-
-    rectangle red_light = {
-        .pos = (vec2f) { 200.f, 200.f },
-        .dim = (vec2f) { 400.f, 50.f },
-        .color = RED_LIGHT
-    };
-    map_draw_rectangle(m, red_light);
-    rectangle green_light = {
-        .pos = (vec2f) { 200.f, 550.f },
-        .dim = (vec2f) { 400.f, 50.f },
-        .color = GREEN_LIGHT
-    };
-    map_draw_rectangle(m, green_light);
-
-    rectangle obstacle_up = {
-        .pos = (vec2f) { 400.f, 130.f },
-        .dim = (vec2f) { 100.f, 20.f },
-        .color = OBSTACLE
-    };
-    map_draw_rectangle(m, obstacle_up);
-    rectangle obstacle_down = {
-        .pos = (vec2f) { 300.f, 650.f },
-        .dim = (vec2f) { 100.f, 20.f },
-        .color = OBSTACLE
-    };
-    map_draw_rectangle(m, obstacle_down);
-
-    circle c1 = {
-        .center = (vec2f) {
-            .x = 200.f,
-            .y = 450.f
-        },
-        .radius = 50.f,
-        .color = OBSTACLE
-    };
-    map_draw_circle(m, c1);
-    circle c2 = {
-        .center = (vec2f) {
-            .x = 400.f,
-            .y = 400.f
-        },
-        .radius = 50.f,
-        .color = OBSTACLE
-    };
-    map_draw_circle(m, c2);
-    circle c3 = {
-        .center = (vec2f) {
-            .x = 600.f,
-            .y = 450.f
-        },
-        .radius = 50.f,
-        .color = OBSTACLE
-    };
-    map_draw_circle(m, c3);
 }

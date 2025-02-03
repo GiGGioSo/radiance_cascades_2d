@@ -1,7 +1,7 @@
-#ifndef _RC_MAP_H
-#define _RC_MAP_H
+#ifndef _RC_MAP_H_
+#define _RC_MAP_H_
 
-#include "string.h"
+#include <string.h>
 
 #include "render.h"
 #include "mathy.h"
@@ -14,6 +14,8 @@
 #define RED_LIGHT (vec4f){ .r = 1.0f, .g = 0, .b = 0, .a = 1.f }
 #define GREEN_LIGHT (vec4f){ .r = 0.f, .g = 1.f, .b = 0.f, .a = 1.f }
 #define BLUE_LIGHT (vec4f){ .r = 0, .g = 0, .b = 1.f, .a = 1.f }
+#define LIGHT_BLUE_LIGHT (vec4f){ .r = 0.6f, .g = 0.6f, .b = 1.f, .a = 1.f }
+#define WHITE_LIGHT (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 #define RAY_CASTED (vec4f){ .r = 1.f, .g = 1.f, .b = 1.f, .a = 1.f }
 #define SKYBOX (vec4f){ .r = 0.1f, .g = 0.1f, .b = 0.1f, .a = 1.f }
 
@@ -298,4 +300,4 @@ void map_draw_rectangle(map m, rectangle r) {
 
 #endif // RADIANCE_CASCADES_MAP_IMPLEMENTATION
 
-#endif // _RC_MAP_H
+#endif // _RC_MAP_H_

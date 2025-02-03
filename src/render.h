@@ -21,6 +21,9 @@ shader_set_float(shader_program s, const char* name, float value);
 void
 shader_set_vec3f(shader_program s, const char* name, float x, float y, float z);
 
+void
+texture_render(GLuint vao, texture texture, shader_program shader);
+
 #ifdef RADIANCE_CASCADES_RENDER_IMPLEMENTATION
 
 #include <stdio.h>
@@ -195,6 +198,16 @@ void shader_set_vec3f(
         float x, float y, float z) {
     glUseProgram(s);
     glUniform3f(glGetUniformLocation(s, name), x, y, z);
+}
+
+void texture_render(GLuint vao, texture texture, shader_program shader) {
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // render container
+    glUseProgram(shader);
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 #endif

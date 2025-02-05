@@ -14,7 +14,7 @@
 #define CASCADE_TO_APPLY_TO_MAP 0
 
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
-#define CASCADE_TO_DRAW 4
+#define CASCADE_TO_DRAW 0
 
 #define CASCADE0_PROBE_NUMBER_X 400
 #define CASCADE0_PROBE_NUMBER_Y 400
@@ -23,7 +23,7 @@
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
-#define INTERVAL_OVERLAP 0.2f // from 0 (no overlap) to 1 (full overlap)
+#define INTERVAL_OVERLAP 0.f // from 0 (no overlap) to 1 (full overlap)
 // ###########################
 
 typedef struct radiance_cascade {

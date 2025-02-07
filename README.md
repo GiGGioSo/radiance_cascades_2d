@@ -34,3 +34,5 @@
 - [ ] Different memory layouts
     - [x] for each cascade, probes are adjecent (default)
     - [ ] for each cascade, every direction ray data is adjecent
+
+- [ ] Build and merge at the same time, starting from last cascade

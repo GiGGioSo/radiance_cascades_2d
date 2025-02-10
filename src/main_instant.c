@@ -74,6 +74,7 @@ int main(void) {
                 m,
                 cascade,
                 cascade_index,
+                // merge only if not first one calculated
                 (cascade_index != CASCADE_NUMBER - 1));
     }
 #if APPLY_SKYBOX != 0

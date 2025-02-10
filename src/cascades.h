@@ -113,8 +113,8 @@ void cascade_instant_generate(
     float current_cascade_dimension_scaling =
         powf((float) DIMENSION_SCALING, (float) cascade_index);
     current_cascade.probe_number = (vec2i) {
-        .x = cascade.probe_size.x * current_cascade_dimension_scaling,
-        .y = cascade.probe_size.y * current_cascade_dimension_scaling
+        .x = cascade.probe_number.x * current_cascade_dimension_scaling,
+        .y = cascade.probe_number.y * current_cascade_dimension_scaling
     };
 
     // angular frequency
@@ -183,104 +183,74 @@ void cascade_instant_generate(
                             current_cascade.interval.x,
                             current_cascade.interval.y);
 
-                if (result_index >= current_cascade.data_length) {
-                    exit(1);
-                }
                 current_cascade.data[result_index] = result;
             }
         }
     }
 
-    // Apply to already existent data
-    for(int32 current_probe_index = 0;
-        current_probe_index <
-            current_cascade.probe_number.x *
-            current_cascade.probe_number.y;
-        ++current_probe_index) {
-        // Loop through current_cascade (higher one) probes
-        vec4f *current_probe =
-            &current_cascade.data[
-                current_probe_index *
-                current_cascade.angular_number];
+    int32 probes_per_current_probe =
+        (int32) (1.f / current_cascade_dimension_scaling);
 
-        int32 probes_per_current_probe_row =
-            (int32) (1.f / current_cascade_dimension_scaling);
+    // Apply to existent data
+    for(int32 probe_index = 0;
+            probe_index <
+            cascade.probe_number.x *
+            cascade.probe_number.y;
+            ++probe_index) {
+        // Loop through base cascade probes (cascade_index 0)
+        vec4f *probe =
+            &cascade.data[probe_index * cascade.angular_number];
 
-        int32 current_probe_x =
-            current_probe_index % current_cascade.probe_number.x;
-        int32 current_probe_y =
-            current_probe_index / current_cascade.probe_number.x;
+        int32 probe_x = probe_index % cascade.probe_number.x;
+        int32 probe_y = probe_index / cascade.probe_number.x;
 
-        int32 probe_index_base =
-            current_probe_y *
-            current_cascade.probe_number.x *
-            POW2(probes_per_current_probe_row) +
-            current_probe_x * probes_per_current_probe_row;
+        int32 current_probe_x = probe_x / probes_per_current_probe;
+        int32 current_probe_y = probe_y / probes_per_current_probe;
 
-        for(int32 probe_index_offset = 0;
-            probe_index_offset < POW2(probes_per_current_probe_row);
-            ++probe_index_offset) {
+        int32 current_probe_index =
+            current_probe_y * current_cascade.probe_number.x +
+            current_probe_x;
+        vec4f *current_probe = &current_cascade.data[
+            current_probe_index * current_cascade.angular_number];
 
-            // which row of the current_probe we are considering
-            int32 probe_index_base_row =
-                probe_index_offset / probes_per_current_probe_row;
-
-            // which probe of the row of the current_probe we are considering
-            int32 probe_index_base_offset =
-                probe_index_offset % probes_per_current_probe_row;
-
-            int32 probe_index =
-                // number of probes in the previous probe_ups
-                probe_index_base +
-                // number of rows I'm skipping
-                probe_index_base_row *
-                // number of probes in a row
-                current_cascade.probe_number.x * probes_per_current_probe_row +
-                probe_index_base_offset;
-
-            // int32 probe_index = probe_index_base + probe_index_offset;
-            vec4f *probe =
-                &cascade.data[probe_index * cascade.angular_number];
-
-            for(int32 direction_index = 0;
+        for(int32 direction_index = 0;
                 direction_index < cascade.angular_number;
                 ++direction_index) {
+            // For each direction of the base cascade probe
 
-                vec4f current_average_radiance = {};
-                int32 current_direction_index_base =
-                    direction_index * current_cascade_angular_scaling;
-                // int32 average_alpha = 1.0f;
-                for(int32 current_direction_index_offset = 0;
+            vec4f current_average_radiance = {};
+            int32 current_direction_index_base =
+                direction_index * current_cascade_angular_scaling;
+            for(int32 current_direction_index_offset = 0;
                     current_direction_index_offset <
-                        current_cascade_angular_scaling;
+                    current_cascade_angular_scaling;
                     ++current_direction_index_offset) {
 
-                    int32 current_direction_index =
-                        current_direction_index_base +
-                            current_direction_index_offset;
-                    vec4f current_radiance =
-                        current_probe[current_direction_index];
-                    current_average_radiance = vec4f_sum_vec4f(
-                            current_average_radiance,
-                            vec4f_divide(
-                                current_radiance,
-                                (float) current_cascade_angular_scaling));
-                }
+                int32 current_direction_index =
+                    current_direction_index_base +
+                    current_direction_index_offset;
+                vec4f current_radiance =
+                    current_probe[current_direction_index];
 
-                if (merge_with_existing) {
-                    // preexistant radiance
-                    vec4f probe_direction_radiance = probe[direction_index];
-                    // the current_average_radiance is the radiance of
-                    // lower level, so we prioritize it in the merging
-                    probe[direction_index] = cascade_merge_intervals(
-                            current_average_radiance,
-                            probe_direction_radiance);
-                } else {
-                    // if we don't merge then we just apply the value.
-                    // this is usually done when we first calculate
-                    //  the highest level
-                    probe[direction_index] = current_average_radiance;
-                }
+                current_average_radiance = vec4f_sum_vec4f(
+                        current_average_radiance,
+                        vec4f_divide(
+                            current_radiance,
+                            (float) current_cascade_angular_scaling));
+            }
+            if (merge_with_existing) {
+                // preexistant radiance
+                vec4f probe_direction_radiance = probe[direction_index];
+                // the current_average_radiance is the radiance of
+                // lower level, so we prioritize it in the merging
+                probe[direction_index] = cascade_merge_intervals(
+                        current_average_radiance,
+                        probe_direction_radiance);
+            } else {
+                // if we don't merge then we just apply the value.
+                // this is usually done when we first calculate
+                //  the highest level
+                probe[direction_index] = current_average_radiance;
             }
         }
     }

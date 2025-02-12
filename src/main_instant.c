@@ -20,6 +20,9 @@
 #define RADIANCE_CASCADES_CASCADES_IMPLEMENTATION
 #include "cascades.h"
 
+#define RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+#include "cascades_instant.h"
+
 #define RADIANCE_CASCADES_TESTS_IMPLEMENTATION
 #include "tests.h"
 

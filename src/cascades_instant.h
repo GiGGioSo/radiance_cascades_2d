@@ -221,7 +221,7 @@ void cascade_instant_recurse_down(
             float direction_angle =
                 2.f * PI *
                 (((float) direction_index + 0.5f) /
-                 (float) top_cascade->angular_number);
+                 (float) cascade->angular_number);
 
             vec2f ray_direction = vec2f_from_angle(direction_angle);
 

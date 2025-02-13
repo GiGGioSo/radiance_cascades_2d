@@ -67,19 +67,10 @@ int main(void) {
     }
 
     INIT_MAP(m);
-    // ### test ###
-    for(int32 cascade_index = CASCADE_NUMBER - 1;
-        cascade_index >= 0;
-        cascade_index--) {
-
-        printf("generating cascade %d\n", cascade_index);
-        cascade_instant_generate(
-                m,
-                cascade,
-                cascade_index,
-                // merge only if not first one calculated
-                (cascade_index != CASCADE_NUMBER - 1));
-    }
+    cascade_instant_generate(
+            m,
+            cascade,
+            CASCADE_NUMBER);
 #if APPLY_SKYBOX != 0
     cascade_apply_skybox(cascade, SKYBOX);
 #endif
@@ -94,7 +85,6 @@ int main(void) {
         shader_create_program("res/shaders/map.vs", "res/shaders/map.fs");
     glUseProgram(map_shader);
     shader_set_int32(map_shader, "map_texture", 0);
-
 
     float this_frame = 0.f;
     float last_frame = 0.f;

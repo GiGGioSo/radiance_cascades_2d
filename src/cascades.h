@@ -18,10 +18,10 @@
 
 #define CASCADE0_PROBE_NUMBER_X 400
 #define CASCADE0_PROBE_NUMBER_Y 400
-#define CASCADE0_ANGULAR_NUMBER 8
+#define CASCADE0_ANGULAR_NUMBER 6
 #define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
-#define ANGULAR_SCALING 2
+#define ANGULAR_SCALING 4
 #define INTERVAL_SCALING 4
 #define INTERVAL_OVERLAP 0.f // from 0 (no overlap) to 1 (full overlap)
 // ###########################
@@ -253,7 +253,13 @@ void cascades_merge(
                         cascade_up.probe_number.x * probes_per_up_probe_row +
                     probe_index_base_offset;
 
-                // int32 probe_index = probe_index_base + probe_index_offset;
+                int32 probe_x = probe_index % cascade.probe_number.x;
+                int32 probe_y = probe_index / cascade.probe_number.x;
+
+                // TODO(bilinear): for finding top-left bilinear probe (of cascade_up obv)
+                float base_coord_x = (float) probe_x / (float) cascade_up.probe_size.x;
+                float base_coord_y = (float) probe_y / (float) cascade_up.probe_size.y;
+
                 vec4f *probe =
                     &cascade.data[probe_index * cascade.angular_number];
 
@@ -271,22 +277,16 @@ void cascades_merge(
 
                         int32 direction_up_index =
                             direction_up_index_base + direction_up_index_offset;
-                        // printf("direction_up_index(%d)\n", direction_up_index);
+
+                        // TODO(bilinear): get the radiance from 4 probes around
                         vec4f radiance_up = probe_up[direction_up_index];
-                        // if (radiance_up.a == 0.f) {
-                        //     average_alpha = 0.f;
-                        // }
+
                         average_radiance_up = vec4f_sum_vec4f(
                                 average_radiance_up,
                                 vec4f_divide(
                                     radiance_up,
                                     (float) ANGULAR_SCALING));
                     }
-                    // average_up.a = average_alpha;
-
-                    // TODO(gio) continua da qua
-                    // printf("average_radiance_up(%f, %f, %f, %f)\n");
-                    // printf("average_radiance_up(%f, %f, %f, %f)\n");
 
                     vec4f probe_direction_radiance = probe[direction_index];
                     probe[direction_index] = cascade_merge_intervals(

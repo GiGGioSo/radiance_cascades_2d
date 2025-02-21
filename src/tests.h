@@ -3,7 +3,7 @@
 
 #include "map.h"
 
-#define INIT_MAP test_double_light
+#define INIT_MAP test_slit
 
 void
 test_double_light(map m);
@@ -128,6 +128,29 @@ void test_penumbra(map m) {
         .color = OBSTACLE
     };
     map_draw_rectangle(m, obstacle);
+}
+
+void test_slit(map m) {
+    rectangle light = {
+        .pos = (vec2f) { 100.f, 250.f },
+        .dim = (vec2f) { 50.f, 300.f },
+        .color = vec4f_divide(GREEN_LIGHT, 1.f)
+    };
+    map_draw_rectangle(m, light);
+
+    rectangle slit_up = {
+        .pos = (vec2f) { 200.f, 0.f },
+        .dim = (vec2f) { 30.f, 375.f },
+        .color = OBSTACLE
+    };
+    map_draw_rectangle(m, slit_up);
+
+    rectangle slit_down = {
+        .pos = (vec2f) { 200.f, 425.f },
+        .dim = (vec2f) { 30.f, 375.f },
+        .color = OBSTACLE
+    };
+    map_draw_rectangle(m, slit_down);
 }
 
 #endif // RADIANCE_CASCADES_TESTS_IMPLEMENTATION

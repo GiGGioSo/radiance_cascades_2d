@@ -53,6 +53,9 @@ merge_intervals(vec4f near, vec4f far);
 void
 cascades_merge(radiance_cascade *cascades, int32 cascades_number);
 
+vec4f
+bilinear_weights(vec2f ratio);
+
 void
 cascade_apply_skybox(radiance_cascade cascade, vec4f skybox_color);
 
@@ -257,8 +260,22 @@ void cascades_merge(
                 int32 probe_y = probe_index / cascade.probe_number.x;
 
                 // TODO(bilinear): for finding top-left bilinear probe (of cascade_up obv)
-                float base_coord_x = (float) probe_x / (float) cascade_up.probe_size.x;
-                float base_coord_y = (float) probe_y / (float) cascade_up.probe_size.y;
+                vec2f base_coord = vec2f_sum_vec2f(
+                    (vec2f) {
+                        .x = (float) probe_x / (float) cascade_up.probe_size.x,
+                        .y = (float) probe_y / (float) cascade_up.probe_size.y
+                    },
+                    (vec2f) { .x = -0.5f, .y = -0.5f }
+                );
+                vec2f ratio = (vec2f) {
+                    .x = base_coord.x - (int) base_coord.x,
+                    .y = base_coord.y - (int) base_coord.y,
+                };
+                vec4f weights = bilinear_weights(ratio);
+                vec2i bilinear_base_pos = (vec2i) {
+                    .x = (int32) base_coord.x,
+                    .y = (int32) base_coord.y,
+                };
 
                 vec4f *probe =
                     &cascade.data[probe_index * cascade.angular_number];
@@ -298,7 +315,17 @@ void cascades_merge(
     }
 }
 
+vec4f bilinear_weights(vec2f ratio) {
+    return (vec4f){
+        .x = (1.0 - ratio.x) * (1.0 - ratio.y),
+        .y = ratio.x * (1.0 - ratio.y),
+        .z = (1.0 - ratio.x) * ratio.y,
+        .w = ratio.x * ratio.y
+    };
+}
+
 // TODO(gio): do this better, result sucks rn
+//              merge the skybox to the last cascade instead of this
 void cascade_apply_skybox(
         radiance_cascade cascade,
         vec4f skybox_color) {

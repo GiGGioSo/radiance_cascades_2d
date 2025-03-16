@@ -143,6 +143,9 @@ vec4f
 vec4f_sum_vec4f(vec4f v1, vec4f v2);
 
 vec2f
+vec2f_sum_vec2f(vec2f v1, vec2f v2);
+
+vec2f
 vec2f_from_angle(float rad);
 
 float
@@ -189,6 +192,15 @@ vec4f vec4f_sum_vec4f(vec4f v1, vec4f v2) {
     result.y = v1.y + v2.y;
     result.z = v1.z + v2.z;
     result.w = v1.w + v2.w;
+
+    return result;
+}
+
+vec2f vec2f_sum_vec2f(vec2f v1, vec2f v2) {
+    vec2f result;
+
+    result.x = v1.x + v2.x;
+    result.y = v1.y + v2.y;
 
     return result;
 }

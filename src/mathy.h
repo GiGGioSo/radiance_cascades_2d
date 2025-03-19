@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include <math.h>
 
+#ifndef ARR_LEN
+#define ARR_LEN(x) (sizeof((x)) / sizeof((x)[0]))
+#endif
 #ifndef DIRECTION
 #define DIRECTION(x) (((x) > 0) ? 1 : -1)
 #endif
@@ -140,6 +143,9 @@ vec4f
 vec4f_divide(vec4f v, float x);
 
 vec4f
+vec4f_mult(vec4f v, float x);
+
+vec4f
 vec4f_sum_vec4f(vec4f v1, vec4f v2);
 
 vec2f
@@ -181,6 +187,17 @@ vec4f vec4f_divide(vec4f v, float x) {
     result.y = v.y / x;
     result.z = v.z / x;
     result.w = v.w / x;
+
+    return result;
+}
+
+vec4f vec4f_mult(vec4f v, float x) {
+    vec4f result;
+
+    result.x = v.x * x;
+    result.y = v.y * x;
+    result.z = v.z * x;
+    result.w = v.w * x;
 
     return result;
 }

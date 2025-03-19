@@ -56,6 +56,9 @@ cascades_merge(radiance_cascade *cascades, int32 cascades_number);
 vec4f
 bilinear_weights(vec2f ratio);
 
+vec2i
+bilinear_offset(int32 index);
+
 void
 cascade_apply_skybox(radiance_cascade cascade, vec4f skybox_color);
 
@@ -220,8 +223,8 @@ void cascades_merge(
                 cascade_up.probe_number.y;
                 ++probe_up_index) {
 
-            vec4f *probe_up =
-                &cascade_up.data[probe_up_index * cascade_up.angular_number];
+            // vec4f *probe_up =
+            //     &cascade_up.data[probe_up_index * cascade_up.angular_number];
 
             int32 probes_per_up_probe_row =
                 (int32) (1.f / (float) DIMENSION_SCALING);
@@ -272,10 +275,10 @@ void cascades_merge(
                     .y = base_coord.y - (int) base_coord.y,
                 };
                 vec4f weights = bilinear_weights(ratio);
-                vec2i bilinear_base_pos = (vec2i) {
-                    .x = (int32) base_coord.x,
-                    .y = (int32) base_coord.y,
-                };
+                // vec2i bilinear_base_pos = (vec2i) { // useless?
+                //     .x = (int32) base_coord.x,
+                //     .y = (int32) base_coord.y,
+                // };
 
                 vec4f *probe =
                     &cascade.data[probe_index * cascade.angular_number];
@@ -296,7 +299,32 @@ void cascades_merge(
                             direction_up_index_base + direction_up_index_offset;
 
                         // TODO(bilinear): get the radiance from 4 probes around
-                        vec4f radiance_up = probe_up[direction_up_index];
+                        vec4f radiance_up = {};
+
+                        for(int32 bilinear_index = 0;
+                            bilinear_index < 4;
+                            ++bilinear_index) {
+
+                            vec2i base_offset = bilinear_offset(bilinear_index);
+                            
+                            int32 bilinear_probe_up_index =
+                                (probe_up_y + base_offset.y) *
+                                 cascade_up.probe_number.x +
+                                (probe_up_x + base_offset.x);
+
+                            vec4f *bilinear_probe_up =
+                                &cascade_up.data[bilinear_probe_up_index *
+                                                 cascade_up.angular_number];
+
+                            vec4f bilinear_radiance_up =
+                                bilinear_probe_up[direction_up_index];
+
+                            radiance_up = vec4f_sum_vec4f(
+                                    radiance_up,
+                                    vec4f_mult(
+                                        bilinear_radiance_up,
+                                        weights.e[bilinear_index]));
+                        }
 
                         average_radiance_up = vec4f_sum_vec4f(
                                 average_radiance_up,
@@ -322,6 +350,19 @@ vec4f bilinear_weights(vec2f ratio) {
         .z = (1.0 - ratio.x) * ratio.y,
         .w = ratio.x * ratio.y
     };
+}
+
+vec2i bilinear_offset(int32 index) {
+    vec2i offsets[] = {
+        (vec2i) { .x = 0, .y = 0},
+        (vec2i) { .x = 1, .y = 0},
+        (vec2i) { .x = 0, .y = 1},
+        (vec2i) { .x = 1, .y = 1},
+    };
+    if (0 > index || index >= ARR_LEN(offsets)) {
+        return offsets[0];
+    }
+    return offsets[index];
 }
 
 // TODO(gio): do this better, result sucks rn

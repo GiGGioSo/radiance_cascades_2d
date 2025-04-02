@@ -18,7 +18,7 @@
 
 #define CASCADE0_PROBE_NUMBER_X 400
 #define CASCADE0_PROBE_NUMBER_Y 400
-#define CASCADE0_ANGULAR_NUMBER 8
+#define CASCADE0_ANGULAR_NUMBER 4
 #define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 4
@@ -307,17 +307,27 @@ void cascades_merge(
 
                             vec2i base_offset = bilinear_offset(bilinear_index);
                             
-                            int32 bilinear_probe_up_index =
-                                (probe_up_y + base_offset.y) *
-                                 cascade_up.probe_number.x +
-                                (probe_up_x + base_offset.x);
+                            vec4f bilinear_radiance_up = (vec4f) { 0, 0, 0, 0 };
 
-                            vec4f *bilinear_probe_up =
-                                &cascade_up.data[bilinear_probe_up_index *
-                                                 cascade_up.angular_number];
+                            if (0 <= probe_up_x + base_offset.x &&
+                                probe_up_x + base_offset.x <
+                                    cascade_up.probe_number.x &&
+                                0 <= probe_up_y + base_offset.y &&
+                                probe_up_y + base_offset.y <
+                                    cascade_up.probe_number.y) {
 
-                            vec4f bilinear_radiance_up =
-                                bilinear_probe_up[direction_up_index];
+                                int32 bilinear_probe_up_index =
+                                    (probe_up_y + base_offset.y) *
+                                    cascade_up.probe_number.x +
+                                    (probe_up_x + base_offset.x);
+
+                                vec4f *bilinear_probe_up =
+                                    &cascade_up.data[bilinear_probe_up_index *
+                                    cascade_up.angular_number];
+                                bilinear_radiance_up =
+                                    bilinear_probe_up[direction_up_index];
+                            }
+
 
                             radiance_up = vec4f_sum_vec4f(
                                     radiance_up,
@@ -345,9 +355,9 @@ void cascades_merge(
 
 vec4f bilinear_weights(vec2f ratio) {
     return (vec4f){
-        .x = (1.0 - ratio.x) * (1.0 - ratio.y),
-        .y = ratio.x * (1.0 - ratio.y),
-        .z = (1.0 - ratio.x) * ratio.y,
+        .x = (1.f - ratio.x) * (1.f - ratio.y),
+        .y = ratio.x * (1.f - ratio.y),
+        .z = (1.f - ratio.x) * ratio.y,
         .w = ratio.x * ratio.y
     };
 }

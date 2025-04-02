@@ -3,7 +3,7 @@
 
 #include "map.h"
 
-#define INIT_MAP test_slit
+#define INIT_MAP test_double_light
 
 void
 test_double_light(map m);

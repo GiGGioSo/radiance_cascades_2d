@@ -16,8 +16,8 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 400
-#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_PROBE_NUMBER_X 800
+#define CASCADE0_PROBE_NUMBER_Y 800
 #define CASCADE0_ANGULAR_NUMBER 4
 #define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
@@ -262,7 +262,7 @@ void cascades_merge(
                 int32 probe_x = probe_index % cascade.probe_number.x;
                 int32 probe_y = probe_index / cascade.probe_number.x;
 
-                // TODO(bilinear): for finding top-left bilinear probe (of cascade_up obv)
+                // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
                 vec2f base_coord = vec2f_sum_vec2f(
                     (vec2f) {
                         .x = (float) probe_x / (float) cascade_up.probe_size.x,
@@ -275,10 +275,6 @@ void cascades_merge(
                     .y = base_coord.y - (int) base_coord.y,
                 };
                 vec4f weights = bilinear_weights(ratio);
-                // vec2i bilinear_base_pos = (vec2i) { // useless?
-                //     .x = (int32) base_coord.x,
-                //     .y = (int32) base_coord.y,
-                // };
 
                 vec4f *probe =
                     &cascade.data[probe_index * cascade.angular_number];
@@ -298,7 +294,7 @@ void cascades_merge(
                         int32 direction_up_index =
                             direction_up_index_base + direction_up_index_offset;
 
-                        // TODO(bilinear): get the radiance from 4 probes around
+                        // NOTE(bilinear): get the radiance from 4 probes around
                         vec4f radiance_up = {};
 
                         for(int32 bilinear_index = 0;
@@ -406,12 +402,63 @@ void cascade_to_map(map m, radiance_cascade cascade) {
 
         vec4f *probe = &cascade.data[probe_index];
 
+        // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
+        vec2f base_coord = vec2f_sum_vec2f(
+            (vec2f) {
+                .x = (float) x / (float) cascade.probe_size.x,
+                .y = (float) y / (float) cascade.probe_size.y
+            },
+            (vec2f) { .x = -0.5f, .y = -0.5f }
+        );
+        vec2f ratio = (vec2f) {
+            .x = base_coord.x - (int) base_coord.x,
+            .y = base_coord.y - (int) base_coord.y,
+        };
+        vec4f weights = bilinear_weights(ratio);
+
         vec4f average = {};
         for(int32 direction_index = 0;
             direction_index < cascade.angular_number;
             ++direction_index) {
 
             vec4f radiance = probe[direction_index];
+            // NOTE(bilinear): get the radiance from 4 probes around
+            vec4f radiance_up = {};
+
+            for(int32 bilinear_index = 0;
+                    bilinear_index < 4;
+                    ++bilinear_index) {
+
+                vec2i base_offset = bilinear_offset(bilinear_index);
+
+                vec4f bilinear_radiance = (vec4f) { 0, 0, 0, 0 };
+
+                if (0 <= probe_x + base_offset.x &&
+                    probe_x + base_offset.x <
+                        cascade.probe_number.x &&
+                    0 <= probe_y + base_offset.y &&
+                    probe_y + base_offset.y <
+                        cascade.probe_number.y) {
+
+                    int32 bilinear_probe_index =
+                        (probe_y + base_offset.y) *
+                        cascade.probe_number.x +
+                        (probe_x + base_offset.x);
+
+                    vec4f *bilinear_probe =
+                        &cascade.data[bilinear_probe_index *
+                        cascade.angular_number];
+                    bilinear_radiance =
+                        bilinear_probe[direction_index];
+                }
+
+
+                radiance_up = vec4f_sum_vec4f(
+                        radiance_up,
+                        vec4f_mult(
+                            bilinear_radiance,
+                            weights.e[bilinear_index]));
+            }
             average = vec4f_sum_vec4f(
                     average,
                     vec4f_divide(

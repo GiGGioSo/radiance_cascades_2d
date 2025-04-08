@@ -16,9 +16,9 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 800
-#define CASCADE0_PROBE_NUMBER_Y 800
-#define CASCADE0_ANGULAR_NUMBER 4
+#define CASCADE0_PROBE_NUMBER_X 400
+#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_ANGULAR_NUMBER 8
 #define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 4
@@ -265,14 +265,18 @@ void cascades_merge(
                 // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
                 vec2f base_coord = vec2f_sum_vec2f(
                     (vec2f) {
-                        .x = (float) probe_x / (float) cascade_up.probe_size.x,
-                        .y = (float) probe_y / (float) cascade_up.probe_size.y
+                        .x = (float) ((probe_x + 0.5f) * cascade.probe_size.x) /
+                                (float) cascade_up.probe_size.x,
+                        .y = (float) ((probe_y + 0.5f) * cascade.probe_size.y) /
+                                (float) cascade_up.probe_size.y
                     },
                     (vec2f) { .x = -0.5f, .y = -0.5f }
                 );
                 vec2f ratio = (vec2f) {
-                    .x = base_coord.x - (int) base_coord.x,
-                    .y = base_coord.y - (int) base_coord.y,
+                    .x = (base_coord.x - (int) base_coord.x) *
+                            SIGN(base_coord.x),
+                    .y = (base_coord.y - (int) base_coord.y) *
+                            SIGN(base_coord.y)
                 };
                 vec4f weights = bilinear_weights(ratio);
 
@@ -410,9 +414,10 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             },
             (vec2f) { .x = -0.5f, .y = -0.5f }
         );
+        float _useless;
         vec2f ratio = (vec2f) {
-            .x = base_coord.x - (int) base_coord.x,
-            .y = base_coord.y - (int) base_coord.y,
+            .x = (base_coord.x - (int) base_coord.x) * SIGN(base_coord.x),
+            .y = (base_coord.y - (int) base_coord.y) * SIGN(base_coord.y),
         };
         vec4f weights = bilinear_weights(ratio);
 
@@ -421,7 +426,7 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             direction_index < cascade.angular_number;
             ++direction_index) {
 
-            vec4f radiance = probe[direction_index];
+            // vec4f radiance = probe[direction_index];
             // NOTE(bilinear): get the radiance from 4 probes around
             vec4f radiance_up = {};
 
@@ -462,7 +467,7 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             average = vec4f_sum_vec4f(
                     average,
                     vec4f_divide(
-                        radiance,
+                        radiance_up,
                         cascade.angular_number));
         }
         average.a = 1.f;

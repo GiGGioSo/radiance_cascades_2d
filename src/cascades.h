@@ -19,7 +19,7 @@
 #define CASCADE0_PROBE_NUMBER_X 400
 #define CASCADE0_PROBE_NUMBER_Y 400
 #define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 4
 #define INTERVAL_SCALING 4
@@ -272,10 +272,14 @@ void cascades_merge(
                     },
                     (vec2f) { .x = -0.5f, .y = -0.5f }
                 );
+                vec2i bilinear_base = (vec2i) {
+                    .x = (int32) floorf(base_coord.x),
+                    .y = (int32) floorf(base_coord.y)
+                };
                 vec2f ratio = (vec2f) {
-                    .x = (base_coord.x - (int) base_coord.x) *
+                    .x = (base_coord.x - (int32) base_coord.x) *
                             SIGN(base_coord.x),
-                    .y = (base_coord.y - (int) base_coord.y) *
+                    .y = (base_coord.y - (int32) base_coord.y) *
                             SIGN(base_coord.y)
                 };
                 vec4f weights = bilinear_weights(ratio);
@@ -305,21 +309,21 @@ void cascades_merge(
                             bilinear_index < 4;
                             ++bilinear_index) {
 
-                            vec2i base_offset = bilinear_offset(bilinear_index);
+                            vec2i offset = bilinear_offset(bilinear_index);
                             
                             vec4f bilinear_radiance_up = (vec4f) { 0, 0, 0, 0 };
 
-                            if (0 <= probe_up_x + base_offset.x &&
-                                probe_up_x + base_offset.x <
+                            if (0 <= bilinear_base.x + offset.x &&
+                                bilinear_base.x + offset.x <
                                     cascade_up.probe_number.x &&
-                                0 <= probe_up_y + base_offset.y &&
-                                probe_up_y + base_offset.y <
+                                0 <= bilinear_base.y + offset.y &&
+                                bilinear_base.y + offset.y <
                                     cascade_up.probe_number.y) {
 
                                 int32 bilinear_probe_up_index =
-                                    (probe_up_y + base_offset.y) *
+                                    (bilinear_base.y + offset.y) *
                                     cascade_up.probe_number.x +
-                                    (probe_up_x + base_offset.x);
+                                    (bilinear_base.x + offset.x);
 
                                 vec4f *bilinear_probe_up =
                                     &cascade_up.data[bilinear_probe_up_index *
@@ -414,10 +418,14 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             },
             (vec2f) { .x = -0.5f, .y = -0.5f }
         );
+        vec2i bilinear_base = (vec2i) {
+            .x = (int32) floorf(base_coord.x),
+            .y = (int32) floorf(base_coord.y)
+        };
         float _useless;
         vec2f ratio = (vec2f) {
-            .x = (base_coord.x - (int) base_coord.x) * SIGN(base_coord.x),
-            .y = (base_coord.y - (int) base_coord.y) * SIGN(base_coord.y),
+            .x = (base_coord.x - (int32) base_coord.x) * SIGN(base_coord.x),
+            .y = (base_coord.y - (int32) base_coord.y) * SIGN(base_coord.y),
         };
         vec4f weights = bilinear_weights(ratio);
 
@@ -434,21 +442,18 @@ void cascade_to_map(map m, radiance_cascade cascade) {
                     bilinear_index < 4;
                     ++bilinear_index) {
 
-                vec2i base_offset = bilinear_offset(bilinear_index);
+                vec2i offset = bilinear_offset(bilinear_index);
 
                 vec4f bilinear_radiance = (vec4f) { 0, 0, 0, 0 };
 
-                if (0 <= probe_x + base_offset.x &&
-                    probe_x + base_offset.x <
-                        cascade.probe_number.x &&
-                    0 <= probe_y + base_offset.y &&
-                    probe_y + base_offset.y <
-                        cascade.probe_number.y) {
+                if (0 <= bilinear_base.x + offset.x &&
+                    bilinear_base.x + offset.x < cascade.probe_number.x &&
+                    0 <= bilinear_base.y + offset.y &&
+                    bilinear_base.y + offset.y < cascade.probe_number.y) {
 
                     int32 bilinear_probe_index =
-                        (probe_y + base_offset.y) *
-                        cascade.probe_number.x +
-                        (probe_x + base_offset.x);
+                        (bilinear_base.y + offset.y) * cascade.probe_number.x +
+                        (bilinear_base.x + offset.x);
 
                     vec4f *bilinear_probe =
                         &cascade.data[bilinear_probe_index *

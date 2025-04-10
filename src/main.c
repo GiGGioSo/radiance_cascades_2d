@@ -64,6 +64,9 @@ int main(void) {
         return 1;
     }
 
+    // Automatically apply sRGB convertion when rendering
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     INIT_MAP(m);
     // ### test ###
     for(int32 cascade_index = 0;

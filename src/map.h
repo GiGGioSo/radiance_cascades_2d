@@ -236,7 +236,7 @@ texture map_generate_texture(map m) {
     glTexImage2D(
             GL_TEXTURE_2D,
             0,
-            GL_RGBA,
+            GL_RGBA32F,
             m.w,
             m.h,
             0,

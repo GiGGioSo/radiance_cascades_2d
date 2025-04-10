@@ -12,7 +12,7 @@
 
 - [x] Free allocated stuff
 
-- [ ] Bilinear filtering
+- [x] Bilinear filtering
 
 - [ ] Save resulting render to file
 

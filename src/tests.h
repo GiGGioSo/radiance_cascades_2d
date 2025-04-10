@@ -54,7 +54,7 @@ void test_double_light(map m) {
     circle c1 = {
         .center = (vec2f) {
             .x = 200.f,
-            .y = 450.f
+            .y = 400.f
         },
         .radius = 50.f,
         .color = OBSTACLE
@@ -72,7 +72,7 @@ void test_double_light(map m) {
     circle c3 = {
         .center = (vec2f) {
             .x = 600.f,
-            .y = 450.f
+            .y = 400.f
         },
         .radius = 50.f,
         .color = OBSTACLE
@@ -116,14 +116,14 @@ void test_spheres(map m) {
 
 void test_penumbra(map m) {
     rectangle light = {
-        .pos = (vec2f) { 100.f, 250.f },
-        .dim = (vec2f) { 50.f, 300.f },
+        .pos = (vec2f) { 100.f, 300.f },
+        .dim = (vec2f) { 50.f, 200.f },
         .color = vec4f_divide(WHITE_LIGHT, 0.75f)
     };
     map_draw_rectangle(m, light);
 
     rectangle obstacle = {
-        .pos = (vec2f) { 250.f, 400.f },
+        .pos = (vec2f) { 450.f, 400.f },
         .dim = (vec2f) { 10.f, 350.f },
         .color = OBSTACLE
     };

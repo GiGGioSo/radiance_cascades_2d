@@ -16,12 +16,12 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 400
-#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_PROBE_NUMBER_X 800
+#define CASCADE0_PROBE_NUMBER_Y 800
 #define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
-#define ANGULAR_SCALING 4
+#define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
 #define INTERVAL_OVERLAP 0.f // from 0 (no overlap) to 1 (full overlap)
 // ###########################
@@ -297,7 +297,14 @@ void cascades_merge(
                             direction_up_index_base + direction_up_index_offset;
 
                         // NOTE(bilinear): get the radiance from 4 probes around
+                        //                  only valid probes are used
+                        //                  (e.g. on the corners, some positions
+                        //                          might be invalid, hence
+                        //                          will not be used)
                         vec4f radiance_up = {};
+
+                        // Count how many values have been used in the average
+                        int32 usable_probe_up_count = 0;
 
                         for(int32 bilinear_index = 0;
                             bilinear_index < 4;
@@ -314,6 +321,9 @@ void cascades_merge(
                                 bilinear_base.y + offset.y <
                                     cascade_up.probe_number.y) {
 
+                                // here the value is usable for the average
+                                usable_probe_up_count++;
+
                                 int32 bilinear_probe_up_index =
                                     (bilinear_base.y + offset.y) *
                                     cascade_up.probe_number.x +
@@ -324,14 +334,21 @@ void cascades_merge(
                                     cascade_up.angular_number];
                                 bilinear_radiance_up =
                                     bilinear_probe_up[direction_up_index];
+
+                                radiance_up = vec4f_sum_vec4f(
+                                        radiance_up,
+                                        vec4f_divide(
+                                            vec4f_diff_vec4f(
+                                                bilinear_radiance_up,
+                                                radiance_up),
+                                            (float) usable_probe_up_count));
                             }
 
-
-                            radiance_up = vec4f_sum_vec4f(
-                                    radiance_up,
-                                    vec4f_mult(
-                                        bilinear_radiance_up,
-                                        weights.e[bilinear_index]));
+                            // radiance_up = vec4f_sum_vec4f(
+                            //         radiance_up,
+                            //         vec4f_mult(
+                            //             bilinear_radiance_up,
+                            //             weights.e[bilinear_index]));
                         }
 
                         average_radiance_up = vec4f_sum_vec4f(
@@ -432,6 +449,9 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             // NOTE(bilinear): get the radiance from 4 probes around
             vec4f radiance_up = {};
 
+            // Count how many values have been used in the average
+            int32 usable_probe_up_count = 0;
+
             for(int32 bilinear_index = 0;
                     bilinear_index < 4;
                     ++bilinear_index) {
@@ -445,6 +465,9 @@ void cascade_to_map(map m, radiance_cascade cascade) {
                     0 <= bilinear_base.y + offset.y &&
                     bilinear_base.y + offset.y < cascade.probe_number.y) {
 
+                    // here the value is usable for the average
+                    usable_probe_up_count++;
+
                     int32 bilinear_probe_index =
                         (bilinear_base.y + offset.y) * cascade.probe_number.x +
                         (bilinear_base.x + offset.x);
@@ -454,14 +477,22 @@ void cascade_to_map(map m, radiance_cascade cascade) {
                         cascade.angular_number];
                     bilinear_radiance =
                         bilinear_probe[direction_index];
+
+                    radiance_up = vec4f_sum_vec4f(
+                            radiance_up,
+                            vec4f_divide(
+                                vec4f_diff_vec4f(
+                                    bilinear_radiance,
+                                    radiance_up),
+                                (float) usable_probe_up_count));
                 }
 
 
-                radiance_up = vec4f_sum_vec4f(
-                        radiance_up,
-                        vec4f_mult(
-                            bilinear_radiance,
-                            weights.e[bilinear_index]));
+                // radiance_up = vec4f_sum_vec4f(
+                //         radiance_up,
+                //         vec4f_mult(
+                //             bilinear_radiance,
+                //             weights.e[bilinear_index]));
             }
             average = vec4f_sum_vec4f(
                     average,

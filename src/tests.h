@@ -24,28 +24,40 @@ void test_double_light(map m) {
 
     // lights
     rectangle red_light = {
-        .pos = (vec2f) { 200.f, 200.f },
-        .dim = (vec2f) { 400.f, 50.f },
+        .pos = (vec2f) { 
+            m.w * 0.25f,
+            m.h * 0.25f
+        },
+        .dim = (vec2f) {
+            m.w * 0.5f,
+            m.h * 0.0625f
+        },
         .color = RED_LIGHT
     };
     map_draw_rectangle(m, red_light);
     rectangle green_light = {
-        .pos = (vec2f) { 200.f, 550.f },
-        .dim = (vec2f) { 400.f, 50.f },
+        .pos = (vec2f) {
+            m.w * 0.25f,
+            m.h * 0.6875
+        },
+        .dim = (vec2f) {
+            m.w * 0.5f,
+            m.h * 0.0625f
+        },
         .color = GREEN_LIGHT
     };
     map_draw_rectangle(m, green_light);
 
     // rectangle obstables
     rectangle obstacle_up = {
-        .pos = (vec2f) { 400.f, 130.f },
-        .dim = (vec2f) { 100.f, 20.f },
+        .pos = (vec2f) { m.w * 0.5f, m.h * 0.1625f },
+        .dim = (vec2f) { m.w * 0.125f, m.h * 0.025f },
         .color = OBSTACLE
     };
     map_draw_rectangle(m, obstacle_up);
     rectangle obstacle_down = {
-        .pos = (vec2f) { 300.f, 650.f },
-        .dim = (vec2f) { 100.f, 20.f },
+        .pos = (vec2f) { m.w * 0.375f, m.h * 0.8125f },
+        .dim = (vec2f) { m.w * 0.125f, m.h * 0.025f },
         .color = OBSTACLE
     };
     map_draw_rectangle(m, obstacle_down);
@@ -53,28 +65,28 @@ void test_double_light(map m) {
     // circle obstacles
     circle c1 = {
         .center = (vec2f) {
-            .x = 200.f,
-            .y = 400.f
+            .x = m.w * 0.25f,
+            .y = m.h * 0.5f
         },
-        .radius = 50.f,
+        .radius = m.w * 0.0625f,
         .color = OBSTACLE
     };
     map_draw_circle(m, c1);
     circle c2 = {
         .center = (vec2f) {
-            .x = 400.f,
-            .y = 400.f
+            .x = m.w * 0.5f,
+            .y = m.h * 0.5f
         },
-        .radius = 50.f,
+        .radius = m.w * 0.0625f,
         .color = OBSTACLE
     };
     map_draw_circle(m, c2);
     circle c3 = {
         .center = (vec2f) {
-            .x = 600.f,
-            .y = 400.f
+            .x = m.w * 0.75f,
+            .y = m.h * 0.5f
         },
-        .radius = 50.f,
+        .radius = m.w * 0.0625f,
         .color = OBSTACLE
     };
     map_draw_circle(m, c3);

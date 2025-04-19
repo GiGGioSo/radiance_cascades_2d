@@ -8,7 +8,7 @@
 
 #define MERGE_CASCADES 1
 
-#define APPLY_SKYBOX 0
+#define APPLY_SKYBOX 1
 
 #define APPLY_CASCADE_TO_MAP 1
 #define CASCADE_TO_APPLY_TO_MAP 0
@@ -16,14 +16,14 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 800
-#define CASCADE0_PROBE_NUMBER_Y 800
-#define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 400
+#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_ANGULAR_NUMBER 12
+#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
-#define ANGULAR_SCALING 2
+#define ANGULAR_SCALING 4
 #define INTERVAL_SCALING 4
-#define INTERVAL_OVERLAP 0.f // from 0 (no overlap) to 1 (full overlap)
+#define INTERVAL_OVERLAP 0.1f // from 0 (no overlap) to 1 (full overlap)
 // ###########################
 
 typedef struct radiance_cascade {
@@ -60,7 +60,7 @@ vec2i
 bilinear_offset(int32 index);
 
 void
-cascade_apply_skybox(radiance_cascade cascade, vec4f skybox_color);
+cascade_apply_skybox(radiance_cascade cascade, vec3f skybox);
 
 void
 cascade_to_map(map m, radiance_cascade cascade);
@@ -394,13 +394,23 @@ vec2i bilinear_offset(int32 index) {
 //              merge the skybox to the last cascade instead of this
 void cascade_apply_skybox(
         radiance_cascade cascade,
-        vec4f skybox_color) {
+        vec3f skybox) {
+
+    vec4f skybox_hit = {
+        .r = skybox.r,
+        .g = skybox.g,
+        .b = skybox.b,
+        .a = 1.f // because it "hit" the skybox
+    };
+
     // merge skybox into cascade
     for(int32 data_index = 0;
         data_index < cascade.data_length;
         ++data_index) {
+
         cascade.data[data_index] =
-            vec4f_sum_vec4f(cascade.data[data_index], skybox_color);
+            // cascade_merge_intervals(cascade.data[data_index], skybox_hit);
+            cascade_merge_intervals(skybox_hit, cascade.data[data_index]);
     }
 }
 

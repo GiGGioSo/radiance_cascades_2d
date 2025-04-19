@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -76,11 +75,12 @@ int main(void) {
         printf("generating cascade %d\n", cascade_index);
         cascade_generate(m, &cascades[cascade_index], cascade_index);
     }
+#if APPLY_SKYBOX != 0
+    printf("Applying skybox...\n");
+    cascade_apply_skybox(cascades[CASCADE_NUMBER - 1], SKYBOX);
+#endif
 #if MERGE_CASCADES != 0
     cascades_merge(cascades, CASCADE_NUMBER);
-#endif
-#if APPLY_SKYBOX != 0
-    cascade_apply_skybox(cascades[0], SKYBOX);
 #endif
 #if APPLY_CASCADE_TO_MAP != 0
     cascade_to_map(m, cascades[CASCADE_TO_APPLY_TO_MAP]);

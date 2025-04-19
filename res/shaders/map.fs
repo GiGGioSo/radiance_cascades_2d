@@ -8,6 +8,6 @@ uniform sampler2D map_texture;
 void main()
 {
     vec3 tex = texture(map_texture, TexCoord).rgb;
-    vec3 correction = vec3(1.35, 0.5, 1.0) * 1.0;
+    vec3 correction = vec3(1.0, 1.0, 1.0) * 1.0;
 	FragColor = vec4(tex * correction, 1.f);
 }

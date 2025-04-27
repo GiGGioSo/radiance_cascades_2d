@@ -66,12 +66,15 @@ int main(void) {
         return 1;
     }
 
+    // Automatically apply sRGB convertion when rendering
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     INIT_MAP(m);
     cascade_instant_generate(
             m,
             cascade,
             CASCADE_NUMBER);
-#if APPLY_SKYBOX != 0
+#if 0 // APPLY_SKYBOX != 0 // NOTE(gio): doesn't really work now for this mode
     cascade_apply_skybox(cascade, SKYBOX);
 #endif
 #if APPLY_CASCADE_TO_MAP != 0

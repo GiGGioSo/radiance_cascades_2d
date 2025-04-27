@@ -5,6 +5,53 @@
 
 #include "cascades.h"
 
+#define BILINEAR_FIX_INSTANT_CASCADES 1
+
+#if BILINEAR_FIX_INSTANT_CASCADES != 0
+
+typedef struct cached_row {
+    vec4f *data;
+    int32 y;
+} cached_probe;
+
+typedef struct cached_radiance_cascade {
+    vec2i probe_number;
+    int32 angular_number;
+    vec2f interval;
+    vec2f probe_size;
+    cached_row row[2]; // need 2 rows to apply bilinear fix on all levels
+} cached_radiance_cascade;
+
+
+/*
+
+Method 1 (top-down):
+ - calculate 2 rows from upper cascade
+ - take the 2 top-most row of the previous cascade inside of the 2 upper rows
+ - repeat until you get to the lowest cascade
+ - apply it to the pixels that use the current cascades in cache
+
+Method 2 (kinda bottom-up):
+ - iterate the pixels by row
+ - for each new pixel row check if the cache has to be updated
+ - to update (same as top-down):
+    - calculate from the upper cascade downwards, so to apply the bilinear fix
+    - kind of the same
+
+key differences:
+ - in Method 1 it would all start from the iteration of the upper cascade
+    - inside each iteration it would recurse down, where there would be
+        an additional iteration
+    - when we get to the first cascade, only then we care about pixels
+ - 
+
+*/
+
+#if RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+#endif // RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+
+#else // BILINEAR_FIX_INSTANT_CASCADES == 0
+
 typedef struct cached_probe {
     vec4f *data;
     int32 x;
@@ -281,7 +328,6 @@ void cascade_instant_recurse_down(
                     cached_cascades_length);
         }
     }
-
 }
 
 void cascade_cached_from_cascade0(
@@ -327,5 +373,7 @@ void cascade_cached_from_cascade0(
 }
 
 #endif // RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+
+#endif // BILINEAR_FIX_INSTANT_CASCADES
 
 #endif // _RC_CASCADES_INSTANT_H_

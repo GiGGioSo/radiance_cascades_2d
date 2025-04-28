@@ -5,14 +5,14 @@
 
 #include "cascades.h"
 
-#define BILINEAR_FIX_INSTANT_CASCADES 1
+#define BILINEAR_FIX_INSTANT_CASCADES 0
 
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
 typedef struct cached_row {
     vec4f *data;
     int32 y;
-} cached_probe;
+} cached_row;
 
 typedef struct cached_radiance_cascade {
     vec2i probe_number;
@@ -47,7 +47,7 @@ key differences:
 
 */
 
-#if RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+#ifdef RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
 #endif // RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
 
 #else // BILINEAR_FIX_INSTANT_CASCADES == 0

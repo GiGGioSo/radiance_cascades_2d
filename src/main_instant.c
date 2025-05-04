@@ -30,10 +30,6 @@
 #define HEIGHT 800
 
 int main(void) {
-    // variables
-    map m = map_create(WIDTH, HEIGHT);
-
-    radiance_cascade cascade = cascade_instant_init(m);
 
     GLFWwindow *glfw_win;
     float delta_time = 0;
@@ -69,7 +65,16 @@ int main(void) {
     // Automatically apply sRGB convertion when rendering
     glEnable(GL_FRAMEBUFFER_SRGB);
 
+    map m = map_create(WIDTH, HEIGHT);
     INIT_MAP(m);
+
+#if BILINEAR_FIX_INSTANT_CASCADES != 0
+
+#else
+
+    radiance_cascade cascade = cascade_instant_init(m);
+
+
     cascade_instant_generate(
             m,
             cascade,
@@ -124,6 +129,8 @@ int main(void) {
         glfwSwapBuffers(glfw_win);
         glfwPollEvents();
     }
+
+#endif
 
     // free cascades
     // cascade_free(&cascade);

@@ -5,7 +5,7 @@
 
 #include "cascades.h"
 
-#define BILINEAR_FIX_INSTANT_CASCADES 0
+#define BILINEAR_FIX_INSTANT_CASCADES 1
 
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
@@ -14,13 +14,13 @@ typedef struct cached_row {
     int32 y;
 } cached_row;
 
-typedef struct cached_radiance_cascade {
+typedef struct cached_rows_radiance_cascade {
     vec2i probe_number;
     int32 angular_number;
     vec2f interval;
     vec2f probe_size;
-    cached_row row[2]; // need 2 rows to apply bilinear fix on all levels
-} cached_radiance_cascade;
+    cached_row rows[2]; // need 2 rows to apply bilinear fix on all levels
+} cached_rows_radiance_cascade;
 
 
 /*
@@ -43,11 +43,133 @@ key differences:
     - inside each iteration it would recurse down, where there would be
         an additional iteration
     - when we get to the first cascade, only then we care about pixels
- - 
-
 */
 
+void
+cached_rows_cascade0_init(map m, cached_rows_radiance_cascade *cascade);
+
+void
+cached_rows_cascade_from_cascade0(cached_rows_radiance_cascade cascade0, cached_rows_radiance_cascade *cached_rows_cascade, int32 cascade_index);
+
+
 #ifdef RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
+
+void cached_rows_cascade0_init(map m, cached_rows_radiance_cascade *cascade) {
+    if (!cascade) return; // i dare you
+
+    // probe count for each dimension
+    cascade->probe_number = (vec2i) {
+        .x = CASCADE0_PROBE_NUMBER_X,
+        .y = CASCADE0_PROBE_NUMBER_Y
+    };
+
+    // angular frequency
+    cascade->angular_number = CASCADE0_ANGULAR_NUMBER;
+
+    // ray cast interval dimension
+    cascade->interval = (vec2f) {
+        .x = 0.f,
+        .y = CASCADE0_INTERVAL_LENGTH
+    };
+    cascade->probe_size = (vec2f) {
+        .x = (float) m.w / (float) cascade->probe_number.x,
+        .y = (float) m.h / (float) cascade->probe_number.y
+    };
+
+    // allocate cascade memory
+    int32 row_data_length =
+        cascade->probe_number.x * cascade->angular_number;
+
+    vec4f *data_start = calloc(row_data_length * 2, sizeof(vec4f));
+
+    cascade->rows[0].data = data_start;
+    cascade->rows[0].y =  -1;
+
+    cascade->rows[1].data = data_start + row_data_length;
+    cascade->rows[1].y =  -1;
+
+    printf("allocated cascade0 rows(%d x 2)\n", row_data_length);
+}
+
+void cached_rows_cascade_from_cascade0(
+        cached_rows_radiance_cascade cascade0,
+        cached_rows_radiance_cascade *cached_rows_cascade,
+        int32 cascade_index) {
+    // fuck off?
+    if (!cached_rows_cascade) return;
+
+    // probe count for each dimension
+    float current_cascade_dimension_scaling =
+        powf((float) DIMENSION_SCALING, (float) cascade_index);
+    cached_rows_cascade->probe_number = (vec2i) {
+        .x = cascade0.probe_number.x * current_cascade_dimension_scaling,
+        .y = cascade0.probe_number.y * current_cascade_dimension_scaling
+    };
+
+    // angular frequency
+    float current_cascade_angular_scaling =
+        powf((float) ANGULAR_SCALING, (float) cascade_index);
+    cached_rows_cascade->angular_number =
+        cascade0.angular_number * current_cascade_angular_scaling;
+
+    // ray cast interval dimension
+    float base_interval = cascade0.interval.y;
+    float cascade_interval_scaling =
+        powf((float) INTERVAL_SCALING, (float) cascade_index);
+    float interval_length =
+        base_interval * cascade_interval_scaling;
+    float interval_start =
+        ((powf((float) base_interval, (float) cascade_index + 1.f) -
+          (float) base_interval) /
+         (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
+    float interval_end = interval_start + interval_length;
+    cached_rows_cascade->interval = (vec2f) {
+        .x = interval_start,
+        .y = interval_end
+    };
+    cached_rows_cascade->probe_size = (vec2f) {
+        .x = (float) cascade0.probe_size.x / current_cascade_dimension_scaling,
+        .y = (float) cascade0.probe_size.y / current_cascade_dimension_scaling
+    };
+
+    int32 row_data_length =
+        cached_rows_cascade->probe_number.x * cached_rows_cascade->angular_number;
+    vec4f *data_start = calloc(row_data_length * 2, sizeof(vec4f));
+
+    cached_rows_cascade->rows[0].data = data_start;
+    cached_rows_cascade->rows[0].y =  -1;
+
+    cached_rows_cascade->rows[1].data = data_start + row_data_length;
+    cached_rows_cascade->rows[1].y =  -1;
+
+    printf("allocated cascade(%d) rows(%d x 2)\n",
+            cascade_index,
+            row_data_length);
+}
+
+void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
+
+    cached_rows_radiance_cascade *cascades =
+        calloc(cascades_number, sizeof(cached_rows_radiance_cascade));
+
+    // fill information about first cascade
+    cached_rows_cascade0_init(m, &cascades[0]);
+
+    // fill information about other cascades
+    for(int32 cascade_index = 1;
+        cascade_index < cascades_number;
+        ++cascade_index) {
+        cached_rows_cascade_from_cascade0(
+                cascades[0],
+                &cascades[cascade_index],
+                cascade_index);
+    }
+
+    // TODO(gio): iterate each pixel row
+    // for(int32 map_row = 0; map_row < m.)
+}
+
+
 #endif // RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
 
 #else // BILINEAR_FIX_INSTANT_CASCADES == 0

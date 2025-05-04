@@ -420,16 +420,16 @@ void cascade_to_map(map m, radiance_cascade cascade) {
         int32 x = pixel_index % m.w;
         int32 y = pixel_index / m.w;
 
-        int32 probe_x = x / cascade.probe_size.x;
-        int32 probe_y = y / cascade.probe_size.y;
-        int32 probe_index =
-            (probe_y * cascade.probe_number.x + probe_x) *
-            cascade.angular_number;
+        // int32 probe_x = x / cascade.probe_size.x;
+        // int32 probe_y = y / cascade.probe_size.y;
+        // int32 probe_index =
+        //     (probe_y * cascade.probe_number.x + probe_x) *
+        //     cascade.angular_number;
 
         // printf("pixel(%d, %d) probe(%d, %d) probe_index(%d)\n",
         //         x, y, probe_x, probe_y, probe_index);
 
-        vec4f *probe = &cascade.data[probe_index];
+        // vec4f *probe = &cascade.data[probe_index];
 
         // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
         vec2f base_coord = vec2f_sum_vec2f(
@@ -443,7 +443,6 @@ void cascade_to_map(map m, radiance_cascade cascade) {
             .x = (int32) floorf(base_coord.x),
             .y = (int32) floorf(base_coord.y)
         };
-        float _useless;
         vec2f ratio = (vec2f) {
             .x = (base_coord.x - (int32) base_coord.x) * SIGN(base_coord.x),
             .y = (base_coord.y - (int32) base_coord.y) * SIGN(base_coord.y),

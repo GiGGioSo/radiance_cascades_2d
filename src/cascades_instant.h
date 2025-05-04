@@ -165,8 +165,101 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
                 cascade_index);
     }
 
-    // TODO(gio): iterate each pixel row
-    // for(int32 map_row = 0; map_row < m.)
+    // NOTE(gio): iterate each pixel row
+    for(int32 pix_y = 0; pix_y < m.h; ++pix_y) {
+
+        // NOTE(gio): check for each cascade if I need to calculate a new row
+        for(int32 cascade_index = cascades_number - 1;
+                cascade_index >= 0;
+                --cascade_index) {
+            // loop constant: every higher cascade is already calculated
+
+            // TODO(gio): check map_row against probe_size and row.y
+
+            // TODO(gio): merge from upper cascade
+        }
+
+        cached_rows_radiance_cascade cascade0 = cascades[0];
+
+        vec2f base_coord = (vec2f) {
+            .x = -1, // updated for each pixel
+            .y = ((float) pix_y / (float) cascade0.probe_size.y) - 0.5f
+        };
+
+        // here all the cache is correct for the pixel i need
+        for(int32 pix_x = 0; pix_x < m.w; ++pix_x) {
+            base_coord.x =
+                ((float) pix_x / (float) cascade0.probe_size.x) - 0.5f;
+
+            vec2i bilinear_base = (vec2i) {
+                .x = (int32) floorf(base_coord.x),
+                .y = (int32) floorf(base_coord.y)
+            };
+            vec2f ratio = (vec2f) {
+                .x = (base_coord.x - (int32) base_coord.x) * SIGN(base_coord.x),
+                .y = (base_coord.y - (int32) base_coord.y) * SIGN(base_coord.y),
+            };
+            vec4f weights = bilinear_weights(ratio);
+
+            vec4f average = {};
+            for(int32 direction_index = 0;
+                direction_index < cascade0.angular_number;
+                ++direction_index) {
+
+                // NOTE(bilinear): get the radiance from 4 probes around
+                vec4f radiance_up = {};
+
+                // Count how many values have been used in the average
+                int32 usable_probe_up_count = 0;
+
+                for(int32 bilinear_index = 0;
+                        bilinear_index < 4;
+                        ++bilinear_index) {
+
+                    // NOTE(gio): offset.y represents which cache row I need
+                    //              to use currently.
+                    vec2i offset = bilinear_offset(bilinear_index);
+
+                    if (0 <= bilinear_base.x + offset.x &&
+                        bilinear_base.x + offset.x < cascade0.probe_number.x &&
+                        0 <= bilinear_base.y + offset.y &&
+                        bilinear_base.y + offset.y < cascade0.probe_number.y) {
+
+                        // here the value is usable for the average
+                        usable_probe_up_count++;
+
+                        // TODO(gio): check offset.y is either 0 or 1
+                        cached_row bilinear_row = cascade0.rows[offset.y];
+                        int32 bilinear_probe_index = bilinear_base.x + offset.x;
+                        vec4f *bilinear_probe = &bilinear_row.data[
+                            bilinear_probe_index * cascade0.angular_number];
+
+                        vec4f bilinear_radiance =
+                            bilinear_probe[direction_index];
+
+                        radiance_up = vec4f_sum_vec4f(
+                                radiance_up,
+                                vec4f_divide(
+                                    vec4f_diff_vec4f(
+                                        bilinear_radiance,
+                                        radiance_up),
+                                    (float) usable_probe_up_count));
+                    }
+
+                }
+                average = vec4f_sum_vec4f(
+                        average,
+                        vec4f_divide(
+                            radiance_up,
+                            cascade0.angular_number));
+            }
+            average.a = 1.f;
+
+            int32 pixel_index = pix_y * m.w + pix_x;
+            m.pixels[pixel_index] = average;
+        }
+
+    }
 }
 
 

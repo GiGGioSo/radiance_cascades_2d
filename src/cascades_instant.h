@@ -10,6 +10,7 @@
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
 typedef struct cached_row {
+    int32 data_length;
     vec4f *data;
     int32 y;
 } cached_row;
@@ -51,6 +52,9 @@ cached_rows_cascade0_init(map m, cached_rows_radiance_cascade *cascade);
 void
 cached_rows_cascade_from_cascade0(cached_rows_radiance_cascade cascade0, cached_rows_radiance_cascade *cached_rows_cascade, int32 cascade_index);
 
+void
+calculate_cascades_and_apply_to_map(map m, int32 cascades_number);
+
 
 #ifdef RADIANCE_CASCADES_CASCADES_INSTANT_IMPLEMENTATION
 
@@ -82,9 +86,11 @@ void cached_rows_cascade0_init(map m, cached_rows_radiance_cascade *cascade) {
 
     vec4f *data_start = calloc(row_data_length * 2, sizeof(vec4f));
 
+    cascade->rows[0].data_length = row_data_length;
     cascade->rows[0].data = data_start;
     cascade->rows[0].y =  -1;
 
+    cascade->rows[1].data_length = row_data_length;
     cascade->rows[1].data = data_start + row_data_length;
     cascade->rows[1].y =  -1;
 
@@ -136,9 +142,11 @@ void cached_rows_cascade_from_cascade0(
         cached_rows_cascade->probe_number.x * cached_rows_cascade->angular_number;
     vec4f *data_start = calloc(row_data_length * 2, sizeof(vec4f));
 
+    cached_rows_cascade->rows[0].data_length = row_data_length;
     cached_rows_cascade->rows[0].data = data_start;
     cached_rows_cascade->rows[0].y =  -1;
 
+    cached_rows_cascade->rows[1].data_length = row_data_length;
     cached_rows_cascade->rows[1].data = data_start + row_data_length;
     cached_rows_cascade->rows[1].y =  -1;
 
@@ -172,17 +180,185 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
                 --cascade_index) {
 
             cached_rows_radiance_cascade *cascade = &cascades[cascade_index];
+            // will need this later for the merging
+            cached_rows_radiance_cascade *cascade_up =
+                &cascades[cascade_index + 1];
+            float angular_scaling =
+                cascade_up->angular_number / cascade->angular_number;
 
             // loop constant: every higher cascade is already calculated
+
             int32 bilinear_base_y = (int32)
                 floorf(((float) (pix_y + 0.5f) /
-                        (float) cascade0.probe_size.y) - 0.5f);
+                        (float) cascade->probe_size.y) - 0.5f);
 
             for(int32 row_index = 0; row_index < 2; ++row_index) {
-                cached_row row = cascade->rows[row_index];
+                cached_row *row = &cascade->rows[row_index];
 
-                // TODO(gio): update the cached_row
-                if (row.y != bilinear_base_y + row_index) {
+                // this `if` is for when the first row will replace the second row
+                if (row_index == 0 &&
+                    row->y != bilinear_base_y &&
+                    cascade->rows[1].y == bilinear_base_y) {
+                    // just need to copy the row content
+                    memcpy(row->data, cascade->rows[1].data, row->data_length);
+                    row->y = bilinear_base_y;
+
+                // this is for the generic case, where the data is outdated
+                } else if (row->y != bilinear_base_y + row_index) {
+                    // calculate cascade row
+                    for(int32 x = 0; x < cascade->probe_number.x; ++x) {
+                        int32 y = row->y;
+
+                        // probe center position to raycast from
+                        vec2f probe_center = {
+                            .x = (float) cascade->probe_size.x * (x + 0.5f),
+                            .y = (float) cascade->probe_size.y * (y + 0.5f),
+                        };
+                        for(int32 direction_index = 0;
+                            direction_index < cascade->angular_number;
+                            ++direction_index) {
+                            float direction_angle =
+                                2.f * PI *
+                                (((float) direction_index + 0.5f) /
+                                 (float) cascade->angular_number);
+
+                            vec2f ray_direction =
+                                vec2f_from_angle(direction_angle);
+
+                            int32 result_index =
+                                x * cascade->angular_number + direction_index;
+
+                            vec4f result =
+                                map_ray_intersect(
+                                        m,
+                                        probe_center,
+                                        ray_direction,
+                                        cascade->interval.x,
+                                        cascade->interval.y);
+
+                            row->data[result_index] = result;
+                        }
+                    }
+
+                    // no need to merge if it's the upper most cascade
+                    if (cascade_index == cascades_number - 1) {
+                        continue;
+                    }
+
+                    // [START] merge with the cascade above if necessary
+
+                    int32 probe_y = row->y;
+
+                    // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
+                    vec2f base_coord = vec2f_sum_vec2f(
+                        (vec2f) {
+                            .x = 0.f,
+                            .y = (float)
+                                ((probe_y + 0.5f) * cascade->probe_size.y) /
+                                    (float) cascade_up->probe_size.y
+                        }, (vec2f) { .x = -0.5f, .y = -0.5f });
+                    vec2i bilinear_base = (vec2i) {
+                        .x = 0,
+                        .y = (int32) floorf(base_coord.y)
+                    };
+                    vec2f ratio = (vec2f) {
+                        .x = 0.f,
+                        .y = (base_coord.y - (int32) base_coord.y) *
+                                SIGN(base_coord.y)
+                    };
+
+                    for(int32 probe_x = 0;
+                        probe_x < cascade->probe_number.x;
+                        ++probe_x) {
+
+                        base_coord.x = (float)
+                            (((probe_x + 0.5f) * cascade->probe_size.x) /
+                             (float) cascade_up->probe_size.x) - 0.5f;
+                        bilinear_base.x = (int32) floorf(base_coord.x);
+                        ratio.x = (base_coord.x - (int32) base_coord.x) *
+                            SIGN(base_coord.x);
+                        vec4f weights = bilinear_weights(ratio);
+
+                        vec4f *probe =
+                            &row->data[probe_x * cascade->angular_number];
+
+                        for(int32 direction_index = 0;
+                                direction_index < cascade->angular_number;
+                                ++direction_index) {
+
+                            vec4f average_radiance_up = {};
+                            int32 direction_up_index_base =
+                                direction_index * angular_scaling;
+                            for(int32 direction_up_index_offset = 0;
+                                    direction_up_index_offset < angular_scaling;
+                                    ++direction_up_index_offset) {
+
+                                int32 direction_up_index =
+                                    direction_up_index_base + direction_up_index_offset;
+
+                                // NOTE(bilinear): get the radiance from
+                                //                  4 probes around only
+                                //                  valid probes are used
+                                //                  (e.g. on the corners,
+                                //                      some positions might
+                                //                      be invalid, hence will
+                                //                      not be used)
+                                vec4f radiance_up = {};
+
+                                // Count how many values
+                                // have been used in the average
+                                int32 usable_probe_up_count = 0;
+
+                                for(int32 bilinear_index = 0;
+                                        bilinear_index < 4;
+                                        ++bilinear_index) {
+
+                                    vec2i offset = bilinear_offset(bilinear_index);
+
+                                    if (0 <= bilinear_base.x + offset.x &&
+                                            bilinear_base.x + offset.x <
+                                            cascade_up->probe_number.x &&
+                                        0 <= bilinear_base.y + offset.y &&
+                                            bilinear_base.y + offset.y <
+                                            cascade_up->probe_number.y) {
+
+                                        // here the value is usable for the average
+                                        usable_probe_up_count++;
+
+                                        cached_row bilinear_row_up = cascade_up->rows[offset.y];
+                                        int32 bilinear_probe_up_index = bilinear_base.x + offset.x;
+
+                                        vec4f *bilinear_probe_up = &bilinear_row_up.data[
+                                            bilinear_probe_up_index * cascade_up->angular_number];
+
+                                        vec4f bilinear_radiance_up =
+                                            bilinear_probe_up[direction_up_index];
+
+                                        radiance_up = vec4f_sum_vec4f(
+                                                radiance_up,
+                                                vec4f_divide(
+                                                    vec4f_diff_vec4f(
+                                                        bilinear_radiance_up,
+                                                        radiance_up),
+                                                    (float) usable_probe_up_count));
+                                    }
+                                }
+
+                                average_radiance_up = vec4f_sum_vec4f(
+                                        average_radiance_up,
+                                        vec4f_divide(
+                                            radiance_up,
+                                            (float) ANGULAR_SCALING));
+                            }
+
+                            vec4f probe_direction_radiance = probe[direction_index];
+                            probe[direction_index] = cascade_merge_intervals(
+                                    probe_direction_radiance,
+                                    average_radiance_up);
+                        }
+                    }
+                    // [END]
+                    row->y = bilinear_base_y;
                 }
             }
         }

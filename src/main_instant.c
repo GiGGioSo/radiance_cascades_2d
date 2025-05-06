@@ -70,6 +70,10 @@ int main(void) {
 
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
+    printf("bilinear fix on instant cascades\n");
+
+    calculate_cascades_and_apply_to_map(m, CASCADE_NUMBER);
+
 #else
 
     radiance_cascade cascade = cascade_instant_init(m);
@@ -85,9 +89,11 @@ int main(void) {
 #if APPLY_CASCADE_TO_MAP != 0
     cascade_to_map(m, cascade);
 #endif
+    texture cascade_texture = cascade_generate_texture(cascade);
+
+#endif
 
     texture map_texture = map_generate_texture(m);
-    texture cascade_texture = cascade_generate_texture(cascade);
     map_setup_renderer(&vao, &vbo, &ebo);
     map_shader =
         shader_create_program("res/shaders/map.vs", "res/shaders/map.fs");
@@ -115,22 +121,20 @@ int main(void) {
             glfwSetWindowShouldClose(glfw_win, GLFW_TRUE);
         }
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(1.0f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-#if DRAW_CASCADE_INSTEAD_OF_MAP == 0
-        texture_render(vao, map_texture, map_shader);
-#else
+#if BILINEAR_FIX_INSTANT_CASCADES == 0 && DRAW_CASCADE_INSTEAD_OF_MAP != 0
         texture_render(vao, cascade_texture, map_shader);
+#else
+        texture_render(vao, map_texture, map_shader);
 #endif
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);
         glfwPollEvents();
     }
-
-#endif
 
     // free cascades
     // cascade_free(&cascade);

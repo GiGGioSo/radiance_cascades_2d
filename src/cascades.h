@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // ### CASCADES PARAMETERS ###
-#define CASCADE_NUMBER 5
+#define CASCADE_NUMBER 2
 
 #define MERGE_CASCADES 1
 
@@ -16,14 +16,14 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 400
-#define CASCADE0_PROBE_NUMBER_Y 400
+#define CASCADE0_PROBE_NUMBER_X 128
+#define CASCADE0_PROBE_NUMBER_Y 128
 #define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 4 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 30 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
-#define INTERVAL_OVERLAP 0.1f // from 0 (no overlap) to 1 (full overlap)
+#define INTERVAL_OVERLAP 0.f // from 0 (no overlap) to 1 (full overlap)
 // ###########################
 
 typedef struct radiance_cascade {

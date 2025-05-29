@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // ### CASCADES PARAMETERS ###
-#define CASCADE_NUMBER 2
+#define CASCADE_NUMBER 5
 
 #define MERGE_CASCADES 1
 
@@ -16,10 +16,10 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 128
-#define CASCADE0_PROBE_NUMBER_Y 128
+#define CASCADE0_PROBE_NUMBER_X 800
+#define CASCADE0_PROBE_NUMBER_Y 800
 #define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 30 // in pixels
+#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
@@ -434,8 +434,8 @@ void cascade_to_map(map m, radiance_cascade cascade) {
         // NOTE(bilinear): for finding top-left bilinear probe (of cascade_up obv)
         vec2f base_coord = vec2f_sum_vec2f(
             (vec2f) {
-                .x = (float) x / (float) cascade.probe_size.x,
-                .y = (float) y / (float) cascade.probe_size.y
+                .x = (float) (x + 0.5f) / (float) cascade.probe_size.x,
+                .y = (float) (y + 0.5f) / (float) cascade.probe_size.y
             },
             (vec2f) { .x = -0.5f, .y = -0.5f }
         );

@@ -29,6 +29,9 @@ typedef struct map {
 map
 map_create(int32 width, int32 height);
 
+map
+map_copy(map m);
+
 vec4f
 map_ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1);
 
@@ -58,6 +61,13 @@ map map_create(int32 width, int32 height) {
     m.pixels = calloc(m.w * m.h, sizeof(vec4f));
 
     return m;
+}
+
+map map_copy(map m) {
+    map result = map_create(m.w, m.h);
+    memcpy(result.pixels, m.pixels, m.w * m.h * sizeof(vec4f));
+
+    return result;
 }
 
 vec4f map_ray_intersect(map m, vec2f origin, vec2f direction, float t0, float t1) {

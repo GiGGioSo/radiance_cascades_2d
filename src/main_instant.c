@@ -65,8 +65,10 @@ int main(void) {
     // Automatically apply sRGB convertion when rendering
     glEnable(GL_FRAMEBUFFER_SRGB);
 
-    map m = map_create(WIDTH, HEIGHT);
-    INIT_MAP(m);
+    map m_read = map_create(WIDTH, HEIGHT);
+    INIT_MAP(m_read);
+
+    map m = map_copy(m_read);
 
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
@@ -76,22 +78,17 @@ int main(void) {
 
 #else
 
+    // no allocation here, only used for the info
     radiance_cascade cascade = cascade_instant_init(m);
 
-
-    cascade_instant_generate(
-            m,
-            cascade,
+    printf("generating instant cascades\n");
+    cascade_instant_generate_and_apply(
+            m_read, m,
+            cascade, 
             CASCADE_NUMBER);
-#if 0 // APPLY_SKYBOX != 0 // NOTE(gio): doesn't really work now for this mode
-    cascade_apply_skybox(cascade, SKYBOX);
 #endif
-#if APPLY_CASCADE_TO_MAP != 0
-    cascade_to_map(m, cascade);
-#endif
-    texture cascade_texture = cascade_generate_texture(cascade);
 
-#endif
+    return 0;
 
     texture map_texture = map_generate_texture(m);
     map_setup_renderer(&vao, &vbo, &ebo);
@@ -125,11 +122,7 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // # render map texture
-#if BILINEAR_FIX_INSTANT_CASCADES == 0 && DRAW_CASCADE_INSTEAD_OF_MAP != 0
-        texture_render(vao, cascade_texture, map_shader);
-#else
         texture_render(vao, map_texture, map_shader);
-#endif
 
         // # finishing touch of the current frame
         glfwSwapBuffers(glfw_win);

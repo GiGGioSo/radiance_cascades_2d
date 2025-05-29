@@ -86,6 +86,8 @@ int main(void) {
     cascade_to_map(m, cascades[CASCADE_TO_APPLY_TO_MAP]);
 #endif
 
+    return 0;
+
     texture map_texture = map_generate_texture(m);
     texture cascade_texture = cascade_generate_texture(cascades[CASCADE_TO_DRAW]);
     map_setup_renderer(&vao, &vbo, &ebo);

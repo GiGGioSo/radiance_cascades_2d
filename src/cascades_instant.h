@@ -6,7 +6,7 @@
 
 #include "cascades.h"
 
-#define BILINEAR_FIX_INSTANT_CASCADES 1
+#define BILINEAR_FIX_INSTANT_CASCADES 0
 
 #if BILINEAR_FIX_INSTANT_CASCADES != 0
 
@@ -170,8 +170,9 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
     // NOTE(gio): iterate each pixel row
     for(int32 pix_y = 0; pix_y < m.h; ++pix_y) {
         int32 cascade0_bilinear_base_y = (int32)
-            floorf(((float) (pix_y) /
+            floorf(((float) (pix_y + 0.5f) /
                         (float) cascades[0].probe_size.y) - 0.5f);
+        printf("pix_y(%d)\n", pix_y);
         // NOTE(gio): check for each cascade if I need to calculate a new row
         for(int32 cascade_index = cascades_number - 1;
                 cascade_index >= 0;
@@ -183,38 +184,45 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
             // loop constant: every higher cascade is already calculated
 
             int32 bilinear_base_y = cascade0_bilinear_base_y;
-            for(int32 i = 1; i <= cascade_index-1; i++) {
+            for(int32 i = 0; i < cascade_index; i++) {
                 cached_rows_radiance_cascade *current = &cascades[i];
                 cached_rows_radiance_cascade *current_up = &cascades[i+1];
 
-                bilinear_base_y = floorf(((bilinear_base_y + 0.5f) *
+                bilinear_base_y = floorf(((bilinear_base_y + 1 + 0.5f) *
                                     current->probe_size.y /
                                     current_up->probe_size.y) - 0.5f);
+                printf("cascade(%d, size(%f, %f)) bilinear_base_y(%d)\n",
+                        i+1,
+                        current_up->probe_size.x, current_up->probe_size.y,
+                        bilinear_base_y
+                        );
             }
 
             for(int32 row_index = 0; row_index < 2; ++row_index) {
                 cached_row *row = &cascade->rows[row_index];
 
                 // this `if` is for when the first row will replace the second row
-                if (row_index == 0 &&
-                    row->y != bilinear_base_y &&
-                    cascade->rows[1].y == bilinear_base_y) {
-                    // just need to copy the row content
-                    memcpy(row->data,
-                           cascade->rows[1].data,
-                           row->data_length * sizeof(vec4f));
-                    printf("cascade(%d) row(old: %d, new: %d) just copying\n",
-                            cascade_index,
-                            row->y,
-                            bilinear_base_y + row_index);
-                    row->y = bilinear_base_y;
+                // if (row_index == 0 &&
+                //     row->y != bilinear_base_y &&
+                //     cascade->rows[1].y == bilinear_base_y) {
+                //     // just need to copy the row content
+                //     memcpy(row->data,
+                //            cascade->rows[1].data,
+                //            row->data_length * sizeof(vec4f));
+                //     printf("cascade(%d) row(old: %d, new: %d) just copying\n",
+                //             cascade_index,
+                //             row->y,
+                //             bilinear_base_y + row_index);
+                //     row->y = bilinear_base_y;
 
-                // this is for the generic case, where the data is outdated
-                } else if (row->y != bilinear_base_y + row_index) {
-                    printf("cascade(%d) row(old: %d, new: %d)\n",
-                            cascade_index,
-                            row->y,
-                            bilinear_base_y + row_index);
+                // // this is for the generic case, where the data is outdated
+                // } else
+                printf("cascade(%d) row_index(%d) row(old: %d, new: %d)\n",
+                        cascade_index,
+                        row_index,
+                        row->y,
+                        bilinear_base_y + row_index);
+                if (row->y != bilinear_base_y + row_index) {
                     row->y = bilinear_base_y + row_index;
                     // calculate cascade row
                     for(int32 x = 0; x < cascade->probe_number.x; ++x) {
@@ -299,6 +307,22 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
                         vec4f *probe =
                             &row->data[probe_x * cascade->angular_number];
 
+                        printf("cascade_up(%d) row0(%d, %d) row1(%d, %d) pix_y(%d)\n",
+                                cascade_index + 1,
+                                cascade_up->rows[0].y,
+                                bilinear_base.y,
+                                cascade_up->rows[1].y,
+                                bilinear_base.y+1,
+                                pix_y);
+                        printf("cascade_up(probe_size(%f, %f))\n",
+                                cascade_up->probe_size.x,
+                                cascade_up->probe_size.y);
+                        printf("cascade(probe_size(%f, %f))\n",
+                                cascade->probe_size.x,
+                                cascade->probe_size.y);
+                        assert(cascade_up->rows[0].y == bilinear_base.y);
+                        assert(cascade_up->rows[1].y == bilinear_base.y+1);
+
                         for(int32 direction_index = 0;
                                 direction_index < cascade->angular_number;
                                 ++direction_index) {
@@ -331,22 +355,6 @@ void calculate_cascades_and_apply_to_map(map m, int32 cascades_number) {
                                         ++bilinear_index) {
 
                                     vec2i offset = bilinear_offset(bilinear_index);
-
-                                    printf("cascade_up(%d) row0(%d, %d) row1(%d, %d) pix_y(%d)\n",
-                                            cascade_index + 1,
-                                            cascade_up->rows[0].y,
-                                            bilinear_base.y,
-                                            cascade_up->rows[1].y,
-                                            bilinear_base.y+1,
-                                            pix_y);
-                                    printf("cascade_up(probe_size(%f, %f))\n",
-                                            cascade_up->probe_size.x,
-                                            cascade_up->probe_size.y);
-                                    printf("cascade(probe_size(%f, %f))\n",
-                                            cascade->probe_size.x,
-                                            cascade->probe_size.y);
-                                    assert(cascade_up->rows[0].y == bilinear_base.y);
-                                    assert(cascade_up->rows[1].y == bilinear_base.y+1);
 
                                     if (0 <= bilinear_base.x + offset.x &&
                                             bilinear_base.x + offset.x <
@@ -506,10 +514,10 @@ radiance_cascade
 cascade_instant_init(map m);
 
 void
-cascade_instant_generate(map m, radiance_cascade cascade0, int32 cascades_number);
+cascade_instant_generate_and_apply(map m_read, map m, radiance_cascade cascade0, int32 cascades_number);
 
 void
-cascade_instant_recurse_down(map m, radiance_cascade cascade0, int32 cascade_index, cached_radiance_cascade *cascades, int32 cached_cascades_length);
+cascade_instant_recurse_down(map m_read, map m, radiance_cascade cascade0, int32 cascade_index, cached_radiance_cascade *cascades, int32 cached_cascades_length);
 
 void
 cascade_cached_from_cascade0(radiance_cascade cascade0, cached_radiance_cascade *cached_cascade, int32 cascade_index);
@@ -542,20 +550,19 @@ radiance_cascade cascade_instant_init(map m) {
         cascade.probe_number.x *
         cascade.probe_number.y *
         cascade.angular_number;
-    cascade.data = calloc(
-            cascade.data_length,
-            sizeof(vec4f));
-    printf("allocated cascade0(%d)\n", cascade.data_length);
+    // cascade.data = calloc(
+    //         cascade.data_length,
+    //         sizeof(vec4f));
+    // printf("allocated cascade0(%d)\n", cascade.data_length);
 
     return cascade;
 }
 
-void cascade_instant_generate(
+void cascade_instant_generate_and_apply(
+        map m_read,
         map m,
         radiance_cascade cascade0,
         int32 cascades_number) {
-    // ### If the cascade is not initialized, return
-    if (cascade0.data == NULL) return;
     
     // TODO(gio): double check this shit
     int32 cache_size =
@@ -628,7 +635,7 @@ void cascade_instant_generate(
 
             vec4f radiance =
                 map_ray_intersect(
-                        m,
+                        m_read,
                         probe_center,
                         ray_direction,
                         top_cascade->interval.x,
@@ -639,6 +646,7 @@ void cascade_instant_generate(
 
         // now recursing down within the current top probe
         cascade_instant_recurse_down(
+                m_read,
                 m,
                 cascade0,
                 cascades_number - 2,
@@ -648,6 +656,7 @@ void cascade_instant_generate(
 }
 
 void cascade_instant_recurse_down(
+        map m_read,
         map m,
         radiance_cascade cascade0,
         int32 cascade_index,
@@ -733,35 +742,88 @@ void cascade_instant_recurse_down(
             // calculate current cascade probe radiance for this direction
             vec4f probe_direction_radiance =
                 map_ray_intersect(
-                        m,
+                        m_read,
                         probe_center,
                         ray_direction,
                         cascade->interval.x,
                         cascade->interval.y);
+
+            // printf("probe_direction_radiance(%f, %f, %f)\n",
+            //         probe_direction_radiance.r,
+            //         probe_direction_radiance.g,
+            //         probe_direction_radiance.b);
 
             // already merge top cascade in this one, so it's ready to use
             cascade->probe.data[direction_index] = cascade_merge_intervals(
                     probe_direction_radiance,
                     average_radiance_up);
 
-            if (cascade_index == 0) {
-                int32 result_index =
-                    (cascade->probe.y * cascade->probe_number.x +
-                     cascade->probe.x) *
-                    cascade->angular_number + direction_index;
-                cascade0.data[result_index] =
-                    cascade->probe.data[direction_index];
-            }
+            // if (cascade_index == 0) {
+            //     int32 result_index =
+            //         (cascade->probe.y * cascade->probe_number.x +
+            //          cascade->probe.x) *
+            //         cascade->angular_number + direction_index;
+            //     cascade0.data[result_index] =
+            //         cascade->probe.data[direction_index];
+            // }
         }
 
         // now recursing down within the current probe, if is not the last one
         if (cascade_index > 0) {
             cascade_instant_recurse_down(
+                    m_read,
                     m,
                     cascade0,
                     cascade_index - 1,
                     cascades,
                     cached_cascades_length);
+        } else if (cascade_index == 0) {
+            int32 probe_x = cascade->probe.x;
+            int32 probe_y = cascade->probe.y;
+
+            float probe_size_x = cascade->probe_size.x;
+            float probe_size_y = cascade->probe_size.y;
+            // printf("probe(%d, %d)\n",
+            //         probe_x, probe_y);
+            // NOTE: apply to map directly
+            for(int32 pix_y = (int32) ceilf((float) probe_y * probe_size_y);
+                pix_y < (int32) ceilf(((float) probe_y + 1.f) * probe_size_y);
+                ++pix_y) {
+                for(int32 pix_x = (int32) ceilf((float) probe_x * probe_size_x);
+                    pix_x < (int32) ceilf(((float) probe_x + 1.f) * probe_size_x);
+                    ++pix_x) {
+
+                    // printf("  pixel(%d, %d)\n", pix_x, pix_y);
+
+                    int32 pix_index = pix_y * m.w + pix_x;
+                    vec4f average_radiance = {};
+                    for(int32 direction_index = 0;
+                        direction_index < cascade->angular_number;
+                        ++direction_index) {
+
+                        vec4f radiance = cascade->probe.data[direction_index];
+                        // printf("pix_index(%d) radiance(%f, %f, %f)\n",
+                        //         pix_index,
+                        //         radiance.r,
+                        //         radiance.g,
+                        //         radiance.b);
+                        average_radiance = vec4f_sum_vec4f(
+                                average_radiance,
+                                vec4f_divide(
+                                    radiance,
+                                    (float) ANGULAR_SCALING));
+                    }
+                    average_radiance.a = 1.f;
+
+                    // printf("pix_index(%d) radiance(%f, %f, %f)\n",
+                    //         pix_index,
+                    //         average_radiance.r,
+                    //         average_radiance.g,
+                    //         average_radiance.b);
+                    m.pixels[pix_index] = average_radiance;
+                }
+            }
+            // exit(1);
         }
     }
 }

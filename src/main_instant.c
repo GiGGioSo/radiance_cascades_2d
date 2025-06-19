@@ -88,8 +88,6 @@ int main(void) {
             CASCADE_NUMBER);
 #endif
 
-    return 0;
-
     texture map_texture = map_generate_texture(m);
     map_setup_renderer(&vao, &vbo, &ebo);
     map_shader =

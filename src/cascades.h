@@ -16,10 +16,10 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 512
-#define CASCADE0_PROBE_NUMBER_Y 512
-#define CASCADE0_ANGULAR_NUMBER 16
-#define CASCADE0_INTERVAL_LENGTH 24 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 768
+#define CASCADE0_PROBE_NUMBER_Y 768
+#define CASCADE0_ANGULAR_NUMBER 32
+#define CASCADE0_INTERVAL_LENGTH 18 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
@@ -155,9 +155,12 @@ void cascade_generate(
         cascade->data = calloc(
                 cascade->data_length,
                 sizeof(vec4f));
-        printf("cascade(%d) data_length(%d)\n",
+        printf("cascade(%d) data_length(%d) probe_number(%d, %d) directions(%d)\n",
                 cascade_index,
-                cascade->data_length);
+                cascade->data_length,
+                cascade->probe_number.x,
+                cascade->probe_number.y,
+                cascade->angular_number);
     }
 
     // ### Do the rest

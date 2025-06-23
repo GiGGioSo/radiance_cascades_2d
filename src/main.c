@@ -80,6 +80,7 @@ int main(void) {
     cascade_apply_skybox(cascades[CASCADE_NUMBER - 1], SKYBOX);
 #endif
 #if MERGE_CASCADES != 0
+    printf("merging...\n");
     cascades_merge(cascades, CASCADE_NUMBER);
 #endif
 #if APPLY_CASCADE_TO_MAP != 0

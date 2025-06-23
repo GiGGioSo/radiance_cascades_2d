@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // ### CASCADES PARAMETERS ###
-#define CASCADE_NUMBER 5
+#define CASCADE_NUMBER 8
 
 #define MERGE_CASCADES 1
 
@@ -16,10 +16,10 @@
 #define DRAW_CASCADE_INSTEAD_OF_MAP 0
 #define CASCADE_TO_DRAW 0
 
-#define CASCADE0_PROBE_NUMBER_X 800
-#define CASCADE0_PROBE_NUMBER_Y 800
-#define CASCADE0_ANGULAR_NUMBER 8
-#define CASCADE0_INTERVAL_LENGTH 3 // in pixels
+#define CASCADE0_PROBE_NUMBER_X 512
+#define CASCADE0_PROBE_NUMBER_Y 512
+#define CASCADE0_ANGULAR_NUMBER 16
+#define CASCADE0_INTERVAL_LENGTH 24 // in pixels
 #define DIMENSION_SCALING 0.5 // for each dimension
 #define ANGULAR_SCALING 2
 #define INTERVAL_SCALING 4
@@ -111,21 +111,37 @@ void cascade_generate(
             powf((float) ANGULAR_SCALING, (float) cascade_index);
         cascade->angular_number = CASCADE0_ANGULAR_NUMBER * cascade_angular_scaling;
 
-        // ray cast interval dimension
+        // ray cast interval dimension - method 1
+        //float base_interval = CASCADE0_INTERVAL_LENGTH;
+        //float cascade_interval_scaling =
+        //    powf((float) INTERVAL_SCALING, (float) cascade_index);
+        //float interval_length =
+        //    base_interval * cascade_interval_scaling;
+        //float interval_start =
+        //    ((powf((float) base_interval, (float) cascade_index + 1.f) -
+        //      (float) base_interval) /
+        //    (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
+        //float interval_end = interval_start + interval_length;
+
+        // method 2
         float base_interval = CASCADE0_INTERVAL_LENGTH;
-        float cascade_interval_scaling =
-            powf((float) INTERVAL_SCALING, (float) cascade_index);
-        float interval_length =
-            base_interval * cascade_interval_scaling;
-        float interval_start =
-            ((powf((float) base_interval, (float) cascade_index + 1.f) -
-              (float) base_interval) /
-            (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
-        float interval_end = interval_start + interval_length;
+        float interval_start_multiplier = 0;
+        if (cascade_index > 0) {
+            interval_start_multiplier =
+                powf((float) 2, (float) cascade_index-1.f);
+        }
+        float interval_end_multiplier = powf((float) 2, (float) cascade_index);
+        float interval_start = base_interval * interval_start_multiplier;
+        float interval_end = base_interval * interval_end_multiplier;
+
         cascade->interval = (vec2f) {
             .x = interval_start,
-                .y = interval_end
+            .y = interval_end
         };
+        printf("cascade(%d) interval(%f, %f)\n",
+                cascade_index,
+                cascade->interval.x,
+                cascade->interval.y);
         cascade->probe_size = (vec2f) {
             .x = (float) m.w / (float) cascade->probe_number.x,
             .y = (float) m.h / (float) cascade->probe_number.y

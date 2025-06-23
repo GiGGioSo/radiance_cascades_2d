@@ -811,7 +811,7 @@ void cascade_instant_recurse_down(
                                 average_radiance,
                                 vec4f_divide(
                                     radiance,
-                                    (float) ANGULAR_SCALING));
+                                    (float) cascade->angular_number));
                     }
                     average_radiance.a = 1.f;
 
@@ -849,21 +849,37 @@ void cascade_cached_from_cascade0(
     cached_cascade->angular_number =
         cascade0.angular_number * current_cascade_angular_scaling;
 
-    // ray cast interval dimension
+    // ray cast interval dimension - method 1
+    //float base_interval = cascade0.interval.y;
+    //float cascade_interval_scaling =
+    //    powf((float) INTERVAL_SCALING, (float) cascade_index);
+    //float interval_length =
+    //    base_interval * cascade_interval_scaling;
+    //float interval_start =
+    //    ((powf((float) base_interval, (float) cascade_index + 1.f) -
+    //      (float) base_interval) /
+    //     (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
+    //float interval_end = interval_start + interval_length;
+
+    // interval - method 2
     float base_interval = cascade0.interval.y;
-    float cascade_interval_scaling =
-        powf((float) INTERVAL_SCALING, (float) cascade_index);
-    float interval_length =
-        base_interval * cascade_interval_scaling;
-    float interval_start =
-        ((powf((float) base_interval, (float) cascade_index + 1.f) -
-          (float) base_interval) /
-         (float) (base_interval - 1)) * (1.f - (float)INTERVAL_OVERLAP);
-    float interval_end = interval_start + interval_length;
+    float interval_start_multiplier = 0;
+    if (cascade_index > 0) {
+        interval_start_multiplier = powf((float) 2, (float) cascade_index-1.f);
+    }
+    float interval_end_multiplier = powf((float) 2, (float) cascade_index);
+    float interval_start = base_interval * interval_start_multiplier;
+    float interval_end = base_interval * interval_end_multiplier;
+
     cached_cascade->interval = (vec2f) {
         .x = interval_start,
         .y = interval_end
     };
+    printf("cached_cascade(%d) interval(%f, %f)\n",
+            cascade_index,
+            cached_cascade->interval.x,
+            cached_cascade->interval.y);
+
     cached_cascade->probe_size = (vec2f) {
         .x = (float) cascade0.probe_size.x / current_cascade_dimension_scaling,
         .y = (float) cascade0.probe_size.y / current_cascade_dimension_scaling
